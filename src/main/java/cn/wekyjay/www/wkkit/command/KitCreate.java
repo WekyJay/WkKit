@@ -16,6 +16,7 @@ import cn.wekyjay.www.wkkit.config.ConfigManager;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.tool.WKTool;
 import de.tr7zw.nbtapi.NBTContainer;
 import de.tr7zw.nbtapi.NBTItem;
 
@@ -56,7 +57,13 @@ public class KitCreate {
 		}
 
 		// 获取玩家手中的物品信息
-		ItemStack is =  player.getInventory().getItemInMainHand();
+		ItemStack is;
+		if(WKTool.getVersion() >= 9) {
+			is =  player.getInventory().getItemInMainHand();
+		}else {
+			is =  player.getInventory().getItemInHand();
+		}
+
 		if(is.getAmount() == 0) {
 			lore = new ArrayList<String>();
 		}else {

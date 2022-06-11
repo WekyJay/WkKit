@@ -164,7 +164,8 @@ public class WkKit extends JavaPlugin {
         	getLogger().info("   \\:\\\\:\\\\:\\ \\\\: \\ )  \\ \\ \\: \\ )  \\ \\/__\\::\\__/\\  \\::\\ \\ ");
         	getLogger().info("    \\_______\\/ \\__\\/\\__\\/  \\__\\/\\__\\/\\________\\/   \\__\\/ ");
         	getLogger().info("");
-        	getLogger().info("Version: 1.0.3 | Author: WekyJay | QQ Group: 945144520");
+        	getLogger().info("Version: "+ getDescription().getVersion() + " | Author: WekyJay | QQ Group: 945144520");
+        	getLogger().info("§a特别鸣谢：§eBiulay Gentry §7(排名不分先后)");
         } else {
             getLogger().warning(LangConfigLoader.getString("PLUGIN_NONBTAPI"));
             Bukkit.getPluginManager().disablePlugin(this);

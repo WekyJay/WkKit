@@ -57,6 +57,7 @@ public class MenuManager {
 					item = new ItemStack(Material.valueOf(id));
 					ItemMeta meta = item.getItemMeta();
 					meta.setDisplayName(name);
+					// …Ë÷√lore
 					if(lore != null) {
 						meta.setLore(lore);
 					}

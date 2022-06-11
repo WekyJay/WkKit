@@ -8,6 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import cn.wekyjay.www.wkkit.command.KitCDK;
 import cn.wekyjay.www.wkkit.command.KitCreate;
@@ -24,6 +25,8 @@ import cn.wekyjay.www.wkkit.edit.EditGUI;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.menu.MenuManager;
 import cn.wekyjay.www.wkkit.menu.MenuOpenner;
+import de.tr7zw.nbtapi.NBTItem;
+import de.tr7zw.nbtapi.plugin.NBTAPI;
 
 
 public class KitCommand implements CommandExecutor{
@@ -134,7 +137,7 @@ public class KitCommand implements CommandExecutor{
 		
 		
 		/*直接发送礼包*/
-		if(args[0].equalsIgnoreCase("give") && args[1] != null && args[2] != null && sender.isOp()) {
+		if(args[0].equalsIgnoreCase("give") && sender.isOp()) {
 			KitGive ks = new KitGive();
 			ks.onCommand(sender, command, label, args);
 		}
@@ -168,7 +171,9 @@ public class KitCommand implements CommandExecutor{
 			new KitCDK().onCommand(sender, args);
 		}
 		if(args[0].equalsIgnoreCase("test")) {
-			sender.sendMessage(WkKit.getPlayerData().getKits(sender.getName()).toString());
+			Player player = (Player)sender;
+			ItemStack item =  player.getInventory().getItemInHand();
+			System.out.println(NBTItem.convertItemtoNBT(item).toString());
 		}
 		
 		/*到底了*/

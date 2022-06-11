@@ -17,17 +17,21 @@ public enum PlayerHead {
 	private ItemStack head;
 	PlayerHead(){
 		int version = WKTool.getVersion();
-		if(version <= 12) {
+		if(version <= 12 && version > 7 ) {
 			NBTContainer c = new NBTContainer("{id:\"minecraft:skull\",Count:1b,Damage:3s}");
-			head = NBTItem.convertNBTtoItem(c);//新建一个头颅物品
-		}else {
+			head = NBTItem.convertNBTtoItem(c);
+		}else if(version <= 7) {
+			NBTContainer c = new NBTContainer("{id:397s,Count:1b,Damage:3s,}");
+			head = NBTItem.convertNBTtoItem(c);
+		}
+		else {
 			NBTContainer c = new NBTContainer("{id:\"minecraft:player_head\",Count:1b}");
-			head = NBTItem.convertNBTtoItem(c);//新建一个头颅物品
+			head = NBTItem.convertNBTtoItem(c);
 		}
 	}
 	PlayerHead(String id,String newid,String textures){
 		int version = WKTool.getVersion();
-		if(version <= 12) {
+		if(version <= 12 && version > 7) {
 			String nbt = "{display:{Name:\"Present (red)\"},SkullOwner:{Id:\""+ id + "\",Properties:{textures:[{Value:\""+ textures + "\"}]}}}";
 			NBTContainer c = new NBTContainer("{id:\"minecraft:skull\",Count:1b,Damage:3s}");
 			head = NBTItem.convertNBTtoItem(c);//新建一个头颅物品
@@ -36,6 +40,11 @@ public enum PlayerHead {
 		    nbti.mergeCompound(newc); // 合并NBT
 		    head = nbti.getItem();
 		    return;
+		}
+		if(version <= 7) {
+			NBTContainer c = new NBTContainer("{id:397s,Count:1b,Damage:3s,}");
+			head = NBTItem.convertNBTtoItem(c);//新建一个头颅物品
+			return;
 		}
 		if(version >= 13 && version <= 15){
 			String nbt = "{display:{Name:\"{\\\"text\\\":\\\"Present (red)\\\"}\"},SkullOwner:{Id:\""+ id + "\",Properties:{textures:[{Value:\""+ textures + "\"}]}}}";
