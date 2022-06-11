@@ -24,8 +24,8 @@ public class KitGetter{
 	 */
 	public void getKit(Kit kit,Player p) {
 		if(kit.getPermission() != null) {if(!this.runPermission(kit, p)) {return;}}
-		if(kit.getTimes() != null) {if(!this.runTimes(kit, p)) {return;}}
 		if(kit.getItemStack() != null) {if(!this.runItem(kit, p)) {return;}}
+		if(kit.getTimes() != null) {if(!this.runTimes(kit, p)) {return;}}
 		// ø…“‘÷¥––
 		if(kit.getCommands() != null) {this.runCommands(kit, p);}
 		this.getSuccess(kit, p);

@@ -16,7 +16,7 @@ Menu1:
          slot: 23
 Menu2:
    Title: "§a礼包菜单2"
-   Permission: 'wkkit.Menu1'
+   Permission: 'wkkit.Menu3'
    Type: CHEST
    Size: 6
    Slots:
@@ -27,7 +27,57 @@ Menu2:
          slot: 0-8,45-53
       DailyKit:
          slot: 21
+         # 礼包不可领取状态时的图标（删除为默认）
+         offid: 'BARRIER'
+         # 礼包可领取状态时的lore（删除为默认）
+         lore:
+         - '§-------------------------------'
+         - '§7礼包名称: %wkkit_name_DailyKit%'
+         - '§-------------------------------'
+         - '§a右键预览礼包'
+         # 礼包不可领取状态时的lore（删除为默认）
+         offlore:
+         - '§7下次领取时间：§e%wkkit_next_DailyKit%'
+         - '§7大致领取时间：§e%wkkit_tonext_DailyKit%'
       MonthlyKit:
          slot: 23
-
-         
+         offid: 'BARRIER'   
+         lore:
+         - '§-------------------------------'
+         - '§7礼包名称: %wkkit_name_MonthlyKit%'
+         - '§-------------------------------'
+         - '§a右键预览礼包'
+         offlore:
+         - '§7下次领取时间：§e%wkkit_next_MonthlyKit%'
+         - '§7大致领取时间：§e%wkkit_tonext_MonthlyKit%'
+Menu3:
+   Title: "§a礼包菜单3"
+   Permission: 'wkkit.Menu3'
+   # 当且仅当只有一个礼包时才有效
+   Spread: true
+   Type: CHEST
+   Size: 6
+   Slots:
+      Default: 
+         id: 'GRASS'
+         name: 'Spilt Line'
+         lore: ''
+         slot: 0-8,45-53
+      # 领取按钮，如果没添加则无法领取
+      Get:
+         id: 'PAPER'
+         slot: 49
+      DailyKit:
+         slot: 21
+         # 礼包不可领取状态时的图标（删除为默认）
+         offid: 'BARRIER'
+         # 礼包可领取状态时的lore（删除为默认）
+         lore:
+         - '§-------------------------------'
+         - '§7礼包名称: %wkkit_name_DailyKit%'
+         - '§-------------------------------'
+         - '§a右键预览礼包'
+         # 礼包不可领取状态时的lore（删除为默认）
+         offlore:
+         - '§7下次领取时间：§e%wkkit_next_DailyKit%'
+         - '§7大致领取时间：§e%wkkit_tonext_DailyKit%'

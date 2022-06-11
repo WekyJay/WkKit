@@ -1,6 +1,6 @@
 name: WkKit
 main:  cn.wekyjay.www.wkkit.WkKit
-version: 1.0.3
+version: 1.0.4
 api-version: 1.13
 author: WekyJay
 depend:

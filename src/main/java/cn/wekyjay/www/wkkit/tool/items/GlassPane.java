@@ -3,6 +3,7 @@ package cn.wekyjay.www.wkkit.tool.items;
 import org.bukkit.inventory.ItemStack;
 
 import cn.wekyjay.www.wkkit.tool.WKTool;
+
 import de.tr7zw.nbtapi.NBTContainer;
 import de.tr7zw.nbtapi.NBTItem;
 
@@ -28,8 +29,11 @@ public enum GlassPane {
 	private ItemStack item;
 	GlassPane() {
 		int version = WKTool.getVersion();
-		if(version <= 12) {
+		if(version <= 12 && WKTool.getVersion() > 7) {
 			NBTContainer c = new NBTContainer("{id:\"minecraft:stained_glass_pane\",Count:1b,Damage:0s}");
+			item = NBTItem.convertNBTtoItem(c);//新建一个物品
+		}else if(WKTool.getVersion() <= 7) {
+			NBTContainer c = new NBTContainer("{id:102s,Count:1b,Damage:0s,}");
 			item = NBTItem.convertNBTtoItem(c);//新建一个物品
 		}else {
 			NBTContainer c = new NBTContainer("{id:\"white_stained_glass_pane\",Count:1b}");
@@ -37,8 +41,11 @@ public enum GlassPane {
 		}
 	}
 	GlassPane(String color,String data) {
-		if(WKTool.getVersion() <= 12) {
+		if(WKTool.getVersion() <= 12 && WKTool.getVersion() > 7) {
 			NBTContainer c = new NBTContainer("{id:\"minecraft:stained_glass_pane\",Count:1b,Damage:"+ data + "}");
+			item = NBTItem.convertNBTtoItem(c);//新建一个物品
+		}else if(WKTool.getVersion() <= 7) {
+			NBTContainer c = new NBTContainer("{id:102s,Count:1b,Damage:0s,}");
 			item = NBTItem.convertNBTtoItem(c);//新建一个物品
 		}else {
 			NBTContainer c = new NBTContainer("{id:\""+ color +"_stained_glass_pane\",Count:1b}");

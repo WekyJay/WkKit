@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
   <groupId>cn.wekyjay.www</groupId>
   <artifactId>WkKit</artifactId>
-  <version>1.0.3</version>
+  <version>1.0.4</version>
    <properties>
 	  <java.version>1.8</java.version>
   </properties>

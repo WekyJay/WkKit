@@ -13,8 +13,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.tool.items.Barrier;
 import cn.wekyjay.www.wkkit.tool.items.GlassPane;
 import cn.wekyjay.www.wkkit.tool.items.PlayerHead;
+import de.tr7zw.nbtapi.NBTItem;
 
 public class EditGUI implements Listener{
 	private String titile;
@@ -35,7 +37,7 @@ public class EditGUI implements Listener{
 				continue;
 			}
 			if(i == 11 || i == 13 || i == 15) {
-				ItemStack is = new ItemStack(Material.BARRIER);
+				ItemStack is = Barrier.DEFAULT.getItemStack();
 				ItemStack playerhead = new ItemStack(PlayerHead.PRESENT_RED.getItemStack());
 				ItemMeta im = is.getItemMeta();
 				im.setDisplayName(LangConfigLoader.getString("DEVELOPING"));
