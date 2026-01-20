@@ -25,7 +25,7 @@ public  class KitSend {
 	 * @return
 	 */
 	public void onCommand(CommandSender sender, Command command, String label, String[] args) {
-		
+
 		if(args.length < 3) {
 			sender.sendMessage(LangConfigLoader.getStringWithPrefix("Commands.send", ChatColor.GREEN));
 			return;
@@ -40,60 +40,22 @@ public  class KitSend {
 		}
 		String kitname = args[1];
 		String target = args[2];
-		
+
 		//判断礼包是否存在
 		if(Kit.getKit(kitname) != null) {
 			// 异步执行判断
 			int finalKitnum = kitnum;
-			HandySchedulerUtil.runTaskAsynchronously(() ->{
-				//发放实体礼包给：@all
-				if(target.equalsIgnoreCase("@All")) {
-					OfflinePlayer[] playerlist = Bukkit.getOfflinePlayers();
-					for(OfflinePlayer player : playerlist) {
-						if (player != null && player instanceof OfflinePlayer) {
-							String pname = player.getName();
 
-							if(PlayersReceiveKitEvent.callEvent(player.getPlayer(),pname,Kit.getKit(kitname), ReceiveType.SEND).isCancelled()) return;
+			if (HandySchedulerUtil.isFolia()){
+				HandySchedulerUtil.runTaskAsynchronously(() ->{
+					this.sendAsyn(target,kitname,sender,finalKitnum);
+				});
+			}else {
+				Bukkit.getScheduler().runTask(wk,()->{
+					this.sendAsyn(target,kitname,sender,finalKitnum);
+				});
+			}
 
-							if(WkKit.getPlayerData().contain_Mail(pname,kitname)) {
-								int num = WkKit.getPlayerData().getMailKitNum(pname, kitname);
-								WkKit.getPlayerData().setMailNum(pname, kitname, num + finalKitnum);
-							}else {
-								WkKit.getPlayerData().setMailNum(pname, kitname, finalKitnum);
-							}
-							// 发送提示
-							if(player.isOnline()) player.getPlayer().sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_PICKUP", ChatColor.GREEN));
-						}
-					}
-					sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_ALL", ChatColor.GREEN));
-					return;
-				}
-				//发放礼包给：@online
-				if(target.equalsIgnoreCase("@Online")) {
-					OfflinePlayer[] playerlist = Bukkit.getOfflinePlayers();
-					for(OfflinePlayer player : playerlist) {
-						if (player != null && player instanceof Player) {
-							String pname = player.getName();
-							if(player.isOnline()) {//判断是否在线
-								// 回调事件
-
-								if(PlayersReceiveKitEvent.callEvent(player.getPlayer(),pname,Kit.getKit(kitname), ReceiveType.SEND).isCancelled()) return;
-
-								if(WkKit.getPlayerData().contain_Mail(pname,kitname)) {
-									int num = WkKit.getPlayerData().getMailKitNum(pname, kitname);
-									WkKit.getPlayerData().setMailNum(pname, kitname, num + finalKitnum);
-								}else {
-									WkKit.getPlayerData().setMailNum(pname, kitname, finalKitnum);
-								}
-								// 发送提示
-								player.getPlayer().sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_PICKUP", ChatColor.GREEN));
-							}
-						}
-					}
-					sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_ONLINE", ChatColor.GREEN));
-					return;
-				}
-			});
 				// 发放礼包给自己
 				if(target.equalsIgnoreCase("@Me") && sender instanceof Player) {
 					String pname = sender.getName();
@@ -135,6 +97,53 @@ public  class KitSend {
 				}
 				sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SENDING", ChatColor.RED));
 				return;
+		}
+	}
+
+	private void sendAsyn(String target,String kitname,CommandSender sender,int finalKitnum){
+		//发放实体礼包给：@all
+		if(target.equalsIgnoreCase("@All")) {
+			OfflinePlayer[] playerlist = Bukkit.getOfflinePlayers();
+			for(OfflinePlayer player : playerlist) {
+				if (player != null && player instanceof OfflinePlayer) {
+					String pname = player.getName();
+					if(PlayersReceiveKitEvent.callEvent(player.getPlayer(),pname,Kit.getKit(kitname), ReceiveType.SEND).isCancelled()) return;
+					if(WkKit.getPlayerData().contain_Mail(pname,kitname)) {
+						int num = WkKit.getPlayerData().getMailKitNum(pname, kitname);
+						WkKit.getPlayerData().setMailNum(pname, kitname, num + finalKitnum);
+					}else {
+						WkKit.getPlayerData().setMailNum(pname, kitname, finalKitnum);
+					}
+					// 发送提示
+					if(player.isOnline()) player.getPlayer().sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_PICKUP", ChatColor.GREEN));
+				}
+			}
+			sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_ALL", ChatColor.GREEN));
+			return;
+		}
+		//发放礼包给：@online
+		if(target.equalsIgnoreCase("@Online")) {
+			OfflinePlayer[] playerlist = Bukkit.getOfflinePlayers();
+			for(OfflinePlayer player : playerlist) {
+				if (player != null && player instanceof Player) {
+					String pname = player.getName();
+					if(player.isOnline()) {//判断是否在线
+						// 回调事件
+						if(PlayersReceiveKitEvent.callEvent(player.getPlayer(),pname,Kit.getKit(kitname), ReceiveType.SEND).isCancelled()) return;
+
+						if(WkKit.getPlayerData().contain_Mail(pname,kitname)) {
+							int num = WkKit.getPlayerData().getMailKitNum(pname, kitname);
+							WkKit.getPlayerData().setMailNum(pname, kitname, num + finalKitnum);
+						}else {
+							WkKit.getPlayerData().setMailNum(pname, kitname, finalKitnum);
+						}
+						// 发送提示
+						player.getPlayer().sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_PICKUP", ChatColor.GREEN));
+					}
+				}
+			}
+			sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_SEND_ONLINE", ChatColor.GREEN));
+			return;
 		}
 	}
 }

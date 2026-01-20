@@ -100,7 +100,8 @@ public class ItemEditer {
 			return false;
 		} else {
 			// 低于1.20.5，直接查根节点
-			return nbt.getCompound("tag").hasTag("wkkit");
+			ReadWriteNBT tag = nbt.getCompound("tag");
+			return tag != null && tag.hasTag("wkkit");
 		}
 	}
 
@@ -122,8 +123,9 @@ public class ItemEditer {
 			return null;
 		} else {
 			// 低于1.20.5
-			if (nbt.getCompound("tag").hasTag("wkkit")) {
-				return nbt.getCompound("tag").getString("wkkit");
+			ReadWriteNBT tag = nbt.getCompound("tag");
+			if (tag != null && tag.hasTag("wkkit")) {
+				return tag.getString("wkkit");
 			}
 			return null;
 		}

@@ -46,6 +46,9 @@ public class KitGetter{
 			if("true".equalsIgnoreCase(lastTimeStr)) {
 				// 继续执行领取逻辑
 			} else {
+				if ("false".equalsIgnoreCase(lastTimeStr)) {
+					return false;
+				}
 				try {
 					// 解析时间字符串
 					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

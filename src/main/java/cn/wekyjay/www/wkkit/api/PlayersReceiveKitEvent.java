@@ -1,5 +1,6 @@
 package cn.wekyjay.www.wkkit.api;
 
+import cn.handyplus.lib.adapter.PlayerSchedulerUtil;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -98,6 +99,7 @@ public class PlayersReceiveKitEvent extends PlayerEvent implements Cancellable {
 	public static PlayersReceiveKitEvent callEvent(Player player,String playername,Kit kit,ReceiveType type) {
 	    PlayersReceiveKitEvent event = new PlayersReceiveKitEvent(player,playername, kit, type);
 	    Bukkit.getPluginManager().callEvent(event);
+
 	    return event;
 	}
 	public static PlayersReceiveKitEvent callEvent(Player player,Kit kit,String value,ReceiveType type) {
