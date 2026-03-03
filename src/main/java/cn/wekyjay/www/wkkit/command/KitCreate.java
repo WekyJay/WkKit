@@ -1,11 +1,17 @@
 package cn.wekyjay.www.wkkit.command;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.WKTool;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.ChatColor;
@@ -122,7 +128,7 @@ public class KitCreate {
 			player.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_CREATE_SUCCESS",ChatColor.GREEN));
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		return true;
 	}

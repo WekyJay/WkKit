@@ -1,16 +1,27 @@
 package cn.wekyjay.www.wkkit;
 
 import cn.wekyjay.www.wkkit.command.*;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.edit.EditGUI;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.edit.EditKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.KitGetter;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.menu.MenuManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.menu.MenuOpenner;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.KitCache;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.MessageManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -206,7 +217,7 @@ public class KitCommand implements CommandExecutor{
 			try {
 				KitCache.getCache().saveCache();
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 			return true;
 		}

@@ -3,6 +3,7 @@ package cn.wekyjay.www.wkkit.config;
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
@@ -215,7 +216,7 @@ public class KitConfigLoader{
 				new KitGroupManager(filename);
 				fileConfigMap.put(file.getName(),YamlConfiguration.loadConfiguration(file));
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}}
 			getConfig(file.getName()).set(path, value);
 		}else {

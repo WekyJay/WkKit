@@ -24,6 +24,7 @@ import cn.wekyjay.www.wkkit.listeners.*;
 import cn.wekyjay.www.wkkit.menu.MenuManager;
 import cn.wekyjay.www.wkkit.mysql.MySQLManager;
 import cn.wekyjay.www.wkkit.tool.*;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -223,7 +224,7 @@ public class WkKit extends JavaPlugin {
             fileYaml.set("Default.ShutDate", sdf.format(new Date()));
             fileYaml.save(file);
         } catch (IOException e) {
-            e.printStackTrace();
+            ExceptionHandler.handleIO("保存插件关闭时间到配置文件", e);
         }
        MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UNINSTALL"));
     }
@@ -243,7 +244,7 @@ public class WkKit extends JavaPlugin {
             try {
                 fileYaml.save(file);
             } catch (IOException e) {
-                e.printStackTrace();
+                ExceptionHandler.handleIO("定时保存防崩服记录", e);
             }
         }, 20, ticks);
 

@@ -1,9 +1,13 @@
 package cn.wekyjay.www.wkkit.command;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -42,7 +46,7 @@ public class KitDelete {
 				ConfigManager.getKitconfig().save(filename);
 				sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_DELETE_SUCCESS", ChatColor.GREEN));
 			} catch (Exception e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 			return;
 		}else {//礼包不存在执行的代码

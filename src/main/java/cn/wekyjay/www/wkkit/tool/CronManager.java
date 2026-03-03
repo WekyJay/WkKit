@@ -1,6 +1,7 @@
 package cn.wekyjay.www.wkkit.tool;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import com.cronutils.model.CronType;
 import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
@@ -51,7 +52,7 @@ public class CronManager {
 		try {
 			lastdate = sdf.parse(time);
 		} catch (ParseException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		ZonedDateTime ztime = ZonedDateTime.ofInstant(lastdate.toInstant(), ZoneId.systemDefault());
 		//获取执行时间类

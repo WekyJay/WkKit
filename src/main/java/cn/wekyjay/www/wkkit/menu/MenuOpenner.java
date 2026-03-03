@@ -1,15 +1,25 @@
 package cn.wekyjay.www.wkkit.menu;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.api.PlayersKitRefreshEvent;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.MenuConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.data.playerdata.PlayerData_MySQL;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.invholder.MenuHolder;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.CronManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.MessageManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.WKTool;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
@@ -107,7 +117,7 @@ public class MenuOpenner {
 					}
 				} catch(ParseException e) {
 					MessageManager.infoDeBug("解析时间出错：" + kitName);
-					e.printStackTrace();
+					ExceptionHandler.handle("未知操作", e);
 				}
 			}
 		});

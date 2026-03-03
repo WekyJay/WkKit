@@ -1,6 +1,7 @@
 package cn.wekyjay.www.wkkit.data.cdkdata;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class CdkData_Yaml implements CdkData {
 			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
 			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}
@@ -31,7 +32,7 @@ public class CdkData_Yaml implements CdkData {
 			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
 			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 
@@ -44,7 +45,7 @@ public class CdkData_Yaml implements CdkData {
 			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
 			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 
@@ -57,7 +58,7 @@ public class CdkData_Yaml implements CdkData {
 			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
 			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 
@@ -68,7 +69,7 @@ public class CdkData_Yaml implements CdkData {
 			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
 			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 

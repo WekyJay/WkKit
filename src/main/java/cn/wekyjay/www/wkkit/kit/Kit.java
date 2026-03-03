@@ -5,6 +5,7 @@ import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
 import cn.wekyjay.www.wkkit.tool.CronManager;
 import cn.wekyjay.www.wkkit.tool.WKTool;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.NbtApiException;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
@@ -151,7 +152,7 @@ public class Kit {
 			KitGroupManager.getGroup(groupname).save(ConfigManager.getKitconfig().getContainsFile(this.kitname));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 	
@@ -330,7 +331,7 @@ public class Kit {
 
 			}
 		}catch(NbtApiException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		if(item == null || item.getAmount() == 0) {
 			// 如果出错或不存在就用默认配置的ICON替代
@@ -392,7 +393,7 @@ public class Kit {
 			
 			return true;
 		} catch (ParseException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 			return false;
 		}
 	}
@@ -438,7 +439,7 @@ public class Kit {
 			}
 			
 		} catch (ParseException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 		return nextTime;

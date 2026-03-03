@@ -1,10 +1,15 @@
 package cn.wekyjay.www.wkkit.tool;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.api.PlayersKitRefreshEvent;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.api.PlayersReceiveKitEvent;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.api.ReceiveType;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -68,9 +73,9 @@ public class KitCache implements Listener{
 			String msg = "Log caches has been saved in Caches\\"+filename+".log";
 			WkKit.getWkKit().getLogger().info(msg);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 	

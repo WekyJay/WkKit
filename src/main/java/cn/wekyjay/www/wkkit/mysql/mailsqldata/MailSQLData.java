@@ -1,8 +1,11 @@
 package cn.wekyjay.www.wkkit.mysql.mailsqldata;
 
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.mysql.MySQLManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.MessageManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,7 +24,7 @@ public class MailSQLData {
 			MySQLManager.get().doCommand(ps);
 		} catch (SQLException e) {
 			MessageManager.info(LangConfigLoader.getString("MAIL_SQL_CREATE_FAIL"));
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(null,ps,connection);
 		}
@@ -39,7 +42,7 @@ public class MailSQLData {
 			ps.setInt(4, num);
 			MySQLManager.get().doCommand(ps);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(null,ps,connection);
 		}
@@ -54,7 +57,7 @@ public class MailSQLData {
 			ps.setString(2, kitname);
 			MySQLManager.get().doCommand(ps);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(null,ps,connection);
 		}

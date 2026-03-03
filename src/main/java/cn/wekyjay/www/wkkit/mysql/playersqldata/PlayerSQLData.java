@@ -1,9 +1,13 @@
 package cn.wekyjay.www.wkkit.mysql.playersqldata;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.mysql.MySQLManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.MessageManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.ChatColor;
 
 import java.sql.*;
@@ -20,7 +24,7 @@ public class PlayerSQLData {
 			MySQLManager.get().doCommand(ps);
 		} catch (SQLException e) {
 			MessageManager.info(LangConfigLoader.getString("PLAYER_SQL_CREATE_FAIL"));
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(null,ps,connection);
 		}
@@ -44,7 +48,7 @@ public class PlayerSQLData {
 			ps.setInt(5, time);
 			MySQLManager.get().doCommand(ps);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(null,ps,connection);
 		}
@@ -60,7 +64,7 @@ public class PlayerSQLData {
 			MySQLManager.get().doCommand(ps);
 			
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		} finally {
 			MySQLManager.close(null,ps,connection);
 		}
@@ -81,7 +85,7 @@ public class PlayerSQLData {
 			}
 			MySQLManager.close(rs,ps,connection);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(rs,ps,connection);
 		}
@@ -149,7 +153,7 @@ public class PlayerSQLData {
 			}
 			MySQLManager.close(rs,ps,connection);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}finally {
 			MySQLManager.close(rs,ps,connection);
 		}
@@ -230,7 +234,7 @@ public class PlayerSQLData {
 			} catch(SQLIntegrityConstraintViolationException sql) {
 				WkKit.getWkKit().getLogger().warning(ChatColor.YELLOW + LangConfigLoader.getString("MYSQL_DATEEXISTS"));
 			}catch (SQLException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 
 

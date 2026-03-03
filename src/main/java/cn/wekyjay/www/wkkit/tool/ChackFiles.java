@@ -56,7 +56,7 @@ public class ChackFiles {
 					try {
 						fileYaml.save(file);
 					} catch (IOException e) {
-						e.printStackTrace();
+						ExceptionHandler.handle("未知操作", e);
 					}
 				}
 			}
@@ -79,7 +79,7 @@ public class ChackFiles {
 			try {
 				file = asFile(inputStream);
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
             if(null != file) {
                 yaml = YamlConfiguration.loadConfiguration(file);
@@ -90,7 +90,7 @@ public class ChackFiles {
                 try{
                     inputStream.close();
                 }catch (IOException e){
-                    e.printStackTrace();
+                    ExceptionHandler.handle("未知操作", e);
                 }
             }
         }

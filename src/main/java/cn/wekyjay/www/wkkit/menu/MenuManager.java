@@ -1,12 +1,19 @@
 package cn.wekyjay.www.wkkit.menu;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.MenuConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.invholder.MenuHolder;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.listeners.KitMenuListener;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.ItemEditer;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.WKTool;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.NbtApiException;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
@@ -77,7 +84,7 @@ public class MenuManager {
 							ReadWriteNBT nbt = NBT.parseNBT(id);
 							item = NBT.itemStackFromNBT(nbt);
 						}catch(NbtApiException e) {
-							e.printStackTrace();
+							ExceptionHandler.handle("未知操作", e);
 						}
 						// 如果item为null则默认设置
 						if(item == null || item.getAmount() == 0) {

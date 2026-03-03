@@ -1,11 +1,17 @@
 package cn.wekyjay.www.wkkit.mysql;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.mysql.cdksqldata.CdkSQLData;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.mysql.mailsqldata.MailSQLData;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.mysql.playersqldata.PlayerSQLData;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.Druid;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.ChatColor;
 
 import java.sql.*;
@@ -35,7 +41,7 @@ public class MySQLManager {
 		try {
 			connection = Druid.getConnection();
 		} catch (SQLException throwables) {
-			throwables.printStackTrace();
+			ExceptionHandler.handle("未知操作", throwables);
 		}
 		return connection;
 	}
@@ -93,7 +99,7 @@ public class MySQLManager {
 		} catch(SQLIntegrityConstraintViolationException sql) {
 			WkKit.getWkKit().getLogger().warning(ChatColor.YELLOW + LangConfigLoader.getString("MYSQL_DATEEXISTS"));
 		}catch (SQLException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 	

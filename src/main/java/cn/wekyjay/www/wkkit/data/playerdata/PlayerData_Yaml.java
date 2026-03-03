@@ -1,6 +1,7 @@
 package cn.wekyjay.www.wkkit.data.playerdata;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -19,7 +20,7 @@ public class PlayerData_Yaml implements PlayerData{
 				WkKit.playerConfig.save(WkKit.playerConfigFile);
 				WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 	}
 
@@ -57,7 +58,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerConfig.save(WkKit.playerConfigFile);
 			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}
@@ -69,7 +70,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerConfig.save(WkKit.playerConfigFile);
 			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}
@@ -81,7 +82,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerConfig.save(WkKit.playerConfigFile);
 			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 
@@ -102,7 +103,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
 			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 	}
 
@@ -113,7 +114,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
 			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}
@@ -125,7 +126,7 @@ public class PlayerData_Yaml implements PlayerData{
 			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
 			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}

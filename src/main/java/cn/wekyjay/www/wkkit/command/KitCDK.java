@@ -1,10 +1,15 @@
 package cn.wekyjay.www.wkkit.command;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kitcode.CodeManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.tool.WKTool;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -145,9 +150,9 @@ public class KitCDK {
 				ra.close();
 				sender.sendMessage(LangConfigLoader.getString("CDK_EXPORT_SUCCESS") + " Export\\"+foldername+".txt");
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 
 

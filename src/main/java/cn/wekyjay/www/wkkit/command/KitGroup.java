@@ -1,10 +1,15 @@
 package cn.wekyjay.www.wkkit.command;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -58,7 +63,7 @@ public class KitGroup {
 						try {
 							ConfigManager.getKitconfig().save(file.getName());
 						} catch (Exception e) {
-							e.printStackTrace();
+							ExceptionHandler.handle("未知操作", e);
 						}
 					}
 				}

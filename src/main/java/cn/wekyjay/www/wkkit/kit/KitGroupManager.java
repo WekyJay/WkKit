@@ -1,7 +1,9 @@
 package cn.wekyjay.www.wkkit.kit;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -22,7 +24,7 @@ public class KitGroupManager{
 				ConfigManager.getKitconfig().getFileList().add(file);
 				ConfigManager.getKitconfig().getFileConfigMap().put(file.getName(),YamlConfiguration.loadConfiguration(file));
 			} catch (IOException e) {
-				e.printStackTrace();
+				ExceptionHandler.handle("未知操作", e);
 			}
 		}
 	}
@@ -90,7 +92,7 @@ public class KitGroupManager{
 			ConfigManager.getKitconfig().save(GroupName + ".yml");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			ExceptionHandler.handle("未知操作", e);
 		}
 		
 	}

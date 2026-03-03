@@ -1,8 +1,11 @@
 package cn.wekyjay.www.wkkit.tool;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.listeners.ChackPluginListener;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import com.alibaba.druid.support.json.JSONParser;
 import org.bukkit.Bukkit;
 import java.io.*;
@@ -163,10 +166,10 @@ public class ChackPluginVersion{
 
         } catch (FileNotFoundException e) {
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_PATH_NOTFOUND"));
-            e.printStackTrace();
+            ExceptionHandler.handle("未知操作", e);
         } catch (IOException e) {
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_IO_ERROR"));
-            e.printStackTrace();
+            ExceptionHandler.handle("未知操作", e);
         }
     }
 
