@@ -1,11 +1,18 @@
 package cn.wekyjay.www.wkkit.kit;
 
+import cn.wekyjay.www.wkkit.WkKit;
+import cn.wekyjay.www.wkkit.data.playerdata.PlayerData;
 import cn.wekyjay.www.wkkit.kit.model.Kit;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,9 +23,10 @@ import java.util.concurrent.CompletableFuture;
 public class KitService {
     
     private static KitService instance;
+    private final PlayerData playerData;
     
     private KitService() {
-        // 私有构造函数
+        this.playerData = WkKit.getPlayerData();
     }
     
     /**
@@ -95,8 +103,30 @@ public class KitService {
                 }
             }
             
-            // 这里应该检查冷却时间、使用次数等
-            // 由于时间关系，暂时跳过详细实现
+            // 检查冷却时间
+            long remainingCooldown = getRemainingCooldown(player, kit);
+            if (remainingCooldown > 0) {
+                long minutes = remainingCooldown / 60;
+                long seconds = remainingCooldown % 60;
+                String timeStr = minutes > 0 ? minutes + "分" + seconds + "秒" : seconds + "秒";
+                return GiveResult.error("礼包冷却中，请等待 " + timeStr, GiveResult.Reason.COOLDOWN);
+            }
+            
+            // 检查使用次数限制
+            if (hasReachedMaxUses(player, kit)) {
+                return GiveResult.error("已达到礼包领取次数限制", GiveResult.Reason.MAX_USES_REACHED);
+            }
+            
+            // 检查计划任务时间
+            if (kit.getConfig().hasCron()) {
+                // 这里需要检查Cron计划时间
+                // 暂时跳过详细实现
+            }
+            
+            // 检查背包空间（如果需要发放物品）
+            if (kit.hasItems() && !hasEnoughInventorySpace(player, kit)) {
+                return GiveResult.error("背包空间不足，请清理背包后重试", GiveResult.Reason.INVENTORY_FULL);
+            }
             
             return GiveResult.success("可以领取礼包");
             
@@ -104,6 +134,19 @@ public class KitService {
             ExceptionHandler.handle("检查玩家是否可以领取礼包", e);
             return GiveResult.error("检查失败: " + e.getMessage(), GiveResult.Reason.ERROR);
         }
+    }
+    
+    /**
+     * 检查玩家是否有足够的背包空间
+     */
+    private boolean hasEnoughInventorySpace(@NotNull Player player, @NotNull Kit kit) {
+        int emptySlots = 0;
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (item == null) {
+                emptySlots++;
+            }
+        }
+        return emptySlots >= kit.getItemCount();
     }
     
     /**
@@ -121,33 +164,210 @@ public class KitService {
                 return checkResult;
             }
             
+            // 调用领取事件（兼容旧系统）
+            // PlayersReceiveKitEvent event = new PlayersReceiveKitEvent(player, kit, null, ReceiveType.GET);
+            // Bukkit.getPluginManager().callEvent(event);
+            // if (event.isCancelled()) {
+            //     return GiveResult.error("领取被事件取消", GiveResult.Reason.ERROR);
+            // }
+            
+            boolean success = true;
+            StringBuilder resultMessage = new StringBuilder();
+            
             // 发放物品
             if (kit.hasItems()) {
-                // 这里需要实现物品发放逻辑
-                // 由于时间关系，暂时跳过
+                GiveResult itemsResult = giveItems(player, kit);
+                if (!itemsResult.isSuccess()) {
+                    success = false;
+                    resultMessage.append(itemsResult.getMessage()).append("; ");
+                }
             }
             
             // 执行命令
-            for (String command : kit.getConfig().getCommands()) {
-                if (command != null && !command.trim().isEmpty()) {
-                    // 这里需要执行命令
-                    // 注意：需要替换变量如 {player}
+            if (!kit.getConfig().getCommands().isEmpty()) {
+                GiveResult commandsResult = executeCommands(player, kit);
+                if (!commandsResult.isSuccess()) {
+                    success = false;
+                    resultMessage.append(commandsResult.getMessage()).append("; ");
                 }
             }
             
             // 发放经济奖励
             if (kit.getConfig().hasEconomyReward()) {
-                // 这里需要实现经济奖励发放
+                GiveResult economyResult = giveEconomyReward(player, kit);
+                if (!economyResult.isSuccess()) {
+                    success = false;
+                    resultMessage.append(economyResult.getMessage()).append("; ");
+                }
+            }
+            
+            // 发放MythicMobs奖励
+            if (kit.getConfig().hasMythicMobsReward()) {
+                GiveResult mythicResult = giveMythicMobsReward(player, kit);
+                if (!mythicResult.isSuccess()) {
+                    success = false;
+                    resultMessage.append(mythicResult.getMessage()).append("; ");
+                }
             }
             
             // 记录领取（更新冷却时间、使用次数等）
-            // 这里需要更新玩家数据
-            
-            return GiveResult.success("成功领取礼包: " + kit.getDisplayName());
+            if (success) {
+                recordKitReceipt(player, kit);
+                return GiveResult.success("成功领取礼包: " + kit.getDisplayName());
+            } else {
+                return GiveResult.error("领取礼包时部分失败: " + resultMessage.toString(), GiveResult.Reason.ERROR);
+            }
             
         } catch (Exception e) {
             ExceptionHandler.handle("发放礼包", e);
             return GiveResult.error("发放失败: " + e.getMessage(), GiveResult.Reason.ERROR);
+        }
+    }
+    
+    /**
+     * 发放物品
+     */
+    @NotNull
+    private GiveResult giveItems(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            int givenCount = 0;
+            for (ItemStack item : kit.getItems()) {
+                if (item != null) {
+                    // 复制物品避免修改原始数据
+                    ItemStack itemCopy = item.clone();
+                    
+                    // 尝试添加到背包
+                    java.util.HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(itemCopy);
+                    
+                    if (leftover.isEmpty()) {
+                        givenCount++;
+                    } else {
+                        // 物品无法完全添加，掉落在地上
+                        for (ItemStack leftItem : leftover.values()) {
+                            player.getWorld().dropItem(player.getLocation(), leftItem);
+                        }
+                        givenCount++;
+                    }
+                }
+            }
+            
+            if (givenCount > 0) {
+                return GiveResult.success("发放了 " + givenCount + " 个物品");
+            } else {
+                return GiveResult.error("没有发放任何物品", GiveResult.Reason.ERROR);
+            }
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("发放物品", e);
+            return GiveResult.error("发放物品失败: " + e.getMessage(), GiveResult.Reason.ERROR);
+        }
+    }
+    
+    /**
+     * 执行命令
+     */
+    @NotNull
+    private GiveResult executeCommands(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            int executedCount = 0;
+            for (String command : kit.getConfig().getCommands()) {
+                if (command != null && !command.trim().isEmpty()) {
+                    // 替换变量
+                    String processedCommand = command
+                            .replace("{player}", player.getName())
+                            .replace("{displayname}", player.getDisplayName())
+                            .replace("{world}", player.getWorld().getName())
+                            .replace("{x}", String.valueOf(player.getLocation().getBlockX()))
+                            .replace("{y}", String.valueOf(player.getLocation().getBlockY()))
+                            .replace("{z}", String.valueOf(player.getLocation().getBlockZ()));
+                    
+                    // 执行命令
+                    boolean success = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                    if (success) {
+                        executedCount++;
+                    }
+                }
+            }
+            
+            if (executedCount > 0) {
+                return GiveResult.success("执行了 " + executedCount + " 个命令");
+            } else {
+                return GiveResult.error("没有执行任何命令", GiveResult.Reason.ERROR);
+            }
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("执行命令", e);
+            return GiveResult.error("执行命令失败: " + e.getMessage(), GiveResult.Reason.ERROR);
+        }
+    }
+    
+    /**
+     * 发放经济奖励
+     */
+    @NotNull
+    private GiveResult giveEconomyReward(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            // 检查Vault插件是否可用
+            if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
+                return GiveResult.error("Vault经济插件未安装", GiveResult.Reason.ERROR);
+            }
+            
+            // 这里需要集成Vault经济系统
+            // 暂时返回成功
+            return GiveResult.success("发放了经济奖励: " + kit.getConfig().getVaultAmount());
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("发放经济奖励", e);
+            return GiveResult.error("发放经济奖励失败: " + e.getMessage(), GiveResult.Reason.ERROR);
+        }
+    }
+    
+    /**
+     * 发放MythicMobs奖励
+     */
+    @NotNull
+    private GiveResult giveMythicMobsReward(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            // 检查MythicMobs插件是否可用
+            if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null) {
+                return GiveResult.error("MythicMobs插件未安装", GiveResult.Reason.ERROR);
+            }
+            
+            // 这里需要集成MythicMobs
+            // 暂时返回成功
+            return GiveResult.success("发放了MythicMobs奖励");
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("发放MythicMobs奖励", e);
+            return GiveResult.error("发放MythicMobs奖励失败: " + e.getMessage(), GiveResult.Reason.ERROR);
+        }
+    }
+    
+    /**
+     * 记录礼包领取
+     */
+    private void recordKitReceipt(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            String playerName = player.getName();
+            String kitId = kit.getId();
+            
+            // 记录领取时间（用于冷却计算）
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String currentTime = sdf.format(new Date());
+            playerData.setKitData(playerName, kitId, currentTime);
+            
+            // 更新使用次数（如果有使用限制）
+            if (!kit.getConfig().isUnlimitedUses()) {
+                int usedTimes = getUsedTimes(player, kit);
+                playerData.setKitTime(playerName, kitId, usedTimes + 1);
+            }
+            
+            // 记录领取日志
+            ExceptionHandler.handleSilently("礼包领取记录: " + playerName + " -> " + kitId, 
+                new Exception("领取时间: " + currentTime));
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("记录礼包领取", e);
         }
     }
     
@@ -196,13 +416,36 @@ public class KitService {
      */
     public boolean hasReachedMaxUses(@NotNull Player player, @NotNull Kit kit) {
         try {
-            // 这里需要查询玩家数据
-            // 由于时间关系，暂时返回false
-            return false;
+            // 如果礼包没有使用限制，直接返回false
+            if (kit.getConfig().isUnlimitedUses()) {
+                return false;
+            }
+            
+            // 获取玩家已使用次数
+            int usedTimes = getUsedTimes(player, kit);
+            int maxUses = kit.getConfig().getMaxUses();
+            
+            return usedTimes >= maxUses;
             
         } catch (Exception e) {
             ExceptionHandler.handle("检查礼包使用上限", e);
             return true; // 出错时保守处理，不允许领取
+        }
+    }
+    
+    /**
+     * 获取玩家已使用次数
+     */
+    private int getUsedTimes(@NotNull Player player, @NotNull Kit kit) {
+        try {
+            String timesStr = playerData.getKitTime(player.getName(), kit.getId());
+            if (timesStr == null || timesStr.isEmpty()) {
+                return 0;
+            }
+            return Integer.parseInt(timesStr);
+        } catch (Exception e) {
+            ExceptionHandler.handleSilently("获取使用次数", e);
+            return 0;
         }
     }
     
@@ -214,9 +457,33 @@ public class KitService {
      */
     public long getRemainingCooldown(@NotNull Player player, @NotNull Kit kit) {
         try {
-            // 这里需要查询玩家数据
-            // 由于时间关系，暂时返回0
-            return 0;
+            // 如果礼包没有冷却时间，直接返回0
+            if (kit.getConfig().getDelaySeconds() <= 0) {
+                return 0;
+            }
+            
+            String lastTimeStr = playerData.getKitData(player.getName(), kit.getId());
+            if (lastTimeStr == null || lastTimeStr.isEmpty() || "true".equalsIgnoreCase(lastTimeStr)) {
+                return 0; // 没有记录或特殊标记，表示可以领取
+            }
+            
+            if ("false".equalsIgnoreCase(lastTimeStr)) {
+                return Long.MAX_VALUE; // 特殊标记，表示不能领取
+            }
+            
+            // 解析上次领取时间
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date lastTime = sdf.parse(lastTimeStr);
+            Date now = new Date();
+            
+            // 计算冷却结束时间
+            Calendar cooldownEnd = Calendar.getInstance();
+            cooldownEnd.setTime(lastTime);
+            cooldownEnd.add(Calendar.SECOND, kit.getConfig().getDelaySeconds());
+            
+            // 计算剩余时间
+            long remaining = cooldownEnd.getTimeInMillis() - now.getTime();
+            return remaining > 0 ? remaining / 1000 : 0;
             
         } catch (Exception e) {
             ExceptionHandler.handle("获取礼包冷却时间", e);

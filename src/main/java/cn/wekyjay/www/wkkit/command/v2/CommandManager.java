@@ -29,11 +29,15 @@ public class CommandManager implements TabExecutor {
     private void registerCommands() {
         // 注册命令
         registerCommand("info", new KitInfoCommand());
+        registerCommand("give", new KitGiveCommand());
         
         // 注册别名
         registerAlias("info", "查看");
         registerAlias("info", "information");
         registerAlias("info", "详情");
+        registerAlias("give", "发放");
+        registerAlias("give", "send");
+        registerAlias("give", "授予");
     }
     
     /**
