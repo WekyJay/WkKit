@@ -30,6 +30,7 @@ public class CommandManager implements TabExecutor {
         // 注册命令
         registerCommand("info", new KitInfoCommand());
         registerCommand("give", new KitGiveCommand());
+        registerCommand("create", new KitCreateCommand());
         
         // 注册别名
         registerAlias("info", "查看");
@@ -38,6 +39,9 @@ public class CommandManager implements TabExecutor {
         registerAlias("give", "发放");
         registerAlias("give", "send");
         registerAlias("give", "授予");
+        registerAlias("create", "新建");
+        registerAlias("create", "添加");
+        registerAlias("create", "new");
     }
     
     /**

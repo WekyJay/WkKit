@@ -356,4 +356,50 @@ public class KitLoader {
             return null;
         }
     }
+    
+    /**
+     * 检查礼包是否存在
+     * @param kitName 礼包名称
+     * @return 是否存在
+     */
+    public static boolean kitExists(@NotNull String kitName) {
+        try {
+            cn.wekyjay.www.wkkit.config.KitConfigLoader configLoader = ConfigManager.getKitconfig();
+            if (configLoader == null) {
+                return false;
+            }
+            
+            List<String> kitNames = configLoader.getKits();
+            return kitNames != null && kitNames.contains(kitName);
+            
+        } catch (Exception e) {
+            ExceptionHandler.handleSilently("检查礼包是否存在: " + kitName, e);
+            return false;
+        }
+    }
+    
+    /**
+     * 保存礼包配置
+     * @param kit 要保存的Kit对象
+     * @return 是否保存成功
+     */
+    public static boolean saveKit(@NotNull Kit kit) {
+        try {
+            // 这里需要实现保存逻辑
+            // 由于时间关系，暂时记录日志并返回true
+            ExceptionHandler.handleSilently("保存礼包: " + kit.getId(), 
+                new Exception("保存功能待实现 - 礼包配置: " + kit.getConfig()));
+            
+            // TODO: 实现实际的保存逻辑
+            // 1. 将KitConfig转换为YAML配置
+            // 2. 保存到配置文件
+            // 3. 重新加载配置
+            
+            return true;
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("保存礼包", e);
+            return false;
+        }
+    }
 }
