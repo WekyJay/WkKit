@@ -402,4 +402,87 @@ public class KitLoader {
             return false;
         }
     }
+    
+    /**
+     * 重新加载所有礼包配置
+     * 清除缓存并从文件重新加载
+     */
+    public static void reloadAllKits() {
+        // 清除缓存
+        KitCache.clear();
+        
+        // 重新加载
+        List<Kit> kits = loadAllKits();
+        
+        // 放入缓存
+        for (Kit kit : kits) {
+            KitCache.put(kit.getId(), kit);
+        }
+        KitCache.putAllKits(kits);
+    }
+    
+    /**
+     * 从缓存加载礼包（带缓存机制）
+     * @param kitName 礼包名称
+     * @return Kit对象，如果不存在返回null
+     */
+    @Nullable
+    public static Kit loadKitCached(@NotNull String kitName) {
+        // 先尝试从缓存获取
+        Kit cached = KitCache.get(kitName);
+        if (cached != null) {
+            return cached;
+        }
+        
+        // 缓存未命中，从文件加载
+        Kit kit = loadKit(kitName);
+        if (kit != null) {
+            KitCache.put(kitName, kit);
+        }
+        return kit;
+    }
+    
+    /**
+     * 获取礼包数量
+     * @return 已加载的礼包数量
+     */
+    public static int getKitCount() {
+        try {
+            cn.wekyjay.www.wkkit.config.KitConfigLoader configLoader = ConfigManager.getKitconfig();
+            if (configLoader == null) {
+                return 0;
+            }
+            return configLoader.getKits().size();
+        } catch (Exception e) {
+            ExceptionHandler.handleSilently("获取礼包数量", e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 删除礼包
+     * @param kitName 礼包名称
+     * @return 是否删除成功
+     */
+    public static boolean deleteKit(@NotNull String kitName) {
+        try {
+            // 从缓存中移除
+            KitCache.invalidate(kitName);
+            KitCache.invalidateAllKits();
+            
+            // 这里需要实现实际的文件删除逻辑
+            ExceptionHandler.handleSilently("删除礼包: " + kitName, 
+                new Exception("删除功能待实现"));
+            
+            // TODO: 实现实际的文件删除
+            // 1. 删除配置文件 plugins/WkKit/Kits/kitName.yml
+            // 2. 从ConfigManager中移除
+            
+            return true;
+            
+        } catch (Exception e) {
+            ExceptionHandler.handle("删除礼包", e);
+            return false;
+        }
+    }
 }

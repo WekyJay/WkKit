@@ -31,6 +31,10 @@ public class CommandManager implements TabExecutor {
         registerCommand("info", new KitInfoCommand());
         registerCommand("give", new KitGiveCommand());
         registerCommand("create", new KitCreateCommand());
+        registerCommand("delete", new KitDeleteCommand());
+        registerCommand("edit", new KitEditCommand());
+        registerCommand("reload", new KitReloadCommand());
+        registerCommand("list", new KitListCommand());
         
         // 注册别名
         registerAlias("info", "查看");
@@ -42,6 +46,14 @@ public class CommandManager implements TabExecutor {
         registerAlias("create", "新建");
         registerAlias("create", "添加");
         registerAlias("create", "new");
+        registerAlias("delete", "删除");
+        registerAlias("delete", "remove");
+        registerAlias("edit", "编辑");
+        registerAlias("edit", "modify");
+        registerAlias("reload", "重载");
+        registerAlias("reload", "refresh");
+        registerAlias("list", "列表");
+        registerAlias("list", "ls");
     }
     
     /**
