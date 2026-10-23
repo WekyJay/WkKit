@@ -438,11 +438,11 @@ public class KitService {
      */
     private int getUsedTimes(@NotNull Player player, @NotNull Kit kit) {
         try {
-            String timesStr = playerData.getKitTime(player.getName(), kit.getId());
-            if (timesStr == null || timesStr.isEmpty()) {
+            Integer times = playerData.getKitTime(player.getName(), kit.getId());
+            if (times == null) {
                 return 0;
             }
-            return Integer.parseInt(timesStr);
+            return times;
         } catch (Exception e) {
             ExceptionHandler.handleSilently("获取使用次数", e);
             return 0;

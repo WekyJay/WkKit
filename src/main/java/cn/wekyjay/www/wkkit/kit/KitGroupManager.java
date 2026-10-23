@@ -69,8 +69,9 @@ public class KitGroupManager{
 	public static List<String> getGroupKits(String GroupName) {
 		List<String> list = new ArrayList<String>();
 		if (ConfigManager.getKitconfig().getFileConfigMap().isEmpty()) return list;
-		for(String kitname : ConfigManager.getKitconfig().getFileConfigMap().get(GroupName + ".yml").getKeys(false)) {
-			if(Kit.getKit(kitname) != null) list.add(kitname);
+		FileConfiguration config = ConfigManager.getKitconfig().getFileConfigMap().get(GroupName + ".yml");
+		if (config != null) {
+			list.addAll(config.getKeys(false));
 		}
 		return list;
 	}

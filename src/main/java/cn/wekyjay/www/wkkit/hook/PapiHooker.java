@@ -5,10 +5,14 @@ import cn.wekyjay.www.wkkit.config.ConfigManager;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.menu.MenuManager;
 import cn.wekyjay.www.wkkit.tool.CronManager;
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -106,9 +110,14 @@ public class PapiHooker extends PlaceholderExpansion {
         	String kitname = s[1];
         	Kit kit = Kit.getKit(kitname);
         	if(kit != null) {
-        		if(kit.getDocron() != null) {
-        			return CronManager.getDescribeToNext(kit.getDocron());
-        		}
+        		String kitData = WkKit.getPlayerData().getKitData(playername, kitname);
+        		if ("false".equalsIgnoreCase(kitData)) return "次数已用完";
+        		
+        		if (kit.canReceive(playername)) return "§a可领取";
+        		
+        		Calendar nextTime = kit.getNextReceiveTime(playername);
+        		long diffMillis = nextTime.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
+        		return diffMillis <= 0 ? "§a可领取" : formatDuration(diffMillis);
         	}
         	return "None";
         }
@@ -117,13 +126,59 @@ public class PapiHooker extends PlaceholderExpansion {
         	String kitname = s[1];
         	Kit kit = Kit.getKit(kitname);
         	if(kit != null) {
-        		if(kit.getDocron() != null) {
-        			Date date = CronManager.getNextExecution(kit.getDocron());
-        			return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
-        		}
+        		String kitData = WkKit.getPlayerData().getKitData(playername, kitname);
+        		if ("false".equalsIgnoreCase(kitData)) return "次数已用完";
+        		
+        		if (kit.canReceive(playername)) return "§a可领取";
+        		
+        		Calendar nextTime = kit.getNextReceiveTime(playername);
+        		return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(nextTime.getTime());
         	}
         	return "None";
         }
         return null; // Placeholder is unknown by the Expansion
+    }
+    
+    /**
+     * 将毫秒数格式化为易读的时间描述（如：3天2小时30分钟15秒）
+     * 参考 CronManager.getDescribeToNext 的格式
+     * @param millis 毫秒数
+     * @return 格式化的时间描述
+     */
+    private String formatDuration(long millis) {
+    	Calendar calc = Calendar.getInstance();
+    	calc.setTimeInMillis(millis);
+    	
+    	// 计算时间差的各个单位值
+    	long totalSeconds = millis / 1000;
+    	long days = totalSeconds / (24 * 3600);
+    	long hours = (totalSeconds % (24 * 3600)) / 3600;
+    	long minutes = (totalSeconds % 3600) / 60;
+    	long seconds = totalSeconds % 60;
+    	
+    	// 为时间差加上单位
+    	String lang = WkKit.getWkKit().getConfig().getString("Setting.Language");
+    	List<String> units = new ArrayList<String>();
+    	List<Long> values = new ArrayList<Long>();
+    	
+    	if(!lang.equals("zh_CN")) {
+    		if (days > 0) { units.add("D"); values.add(days); }
+    		if (hours > 0) { units.add("H"); values.add(hours); }
+    		if (minutes > 0) { units.add("MIN"); values.add(minutes); }
+    		if (seconds > 0) { units.add("S"); values.add(seconds); }
+    	} else {
+    		if (days > 0) { units.add("天"); values.add(days); }
+    		if (hours > 0) { units.add("小时"); values.add(hours); }
+    		if (minutes > 0) { units.add("分钟"); values.add(minutes); }
+    		if (seconds > 0) { units.add("秒"); values.add(seconds); }
+    	}
+    	
+    	StringBuilder str = new StringBuilder();
+    	for (int i = 0; i < units.size(); i++) {
+    		if (i > 0) str.append("/");
+    		str.append(values.get(i)).append(units.get(i));
+    	}
+    	
+    	return str.length() > 0 ? str.toString() : "0" + (lang.equals("zh_CN") ? "秒" : "S");
     }
 }

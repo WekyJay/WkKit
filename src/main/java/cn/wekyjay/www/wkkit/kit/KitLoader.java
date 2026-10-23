@@ -358,25 +358,8 @@ public class KitLoader {
     }
     
     /**
-     * 检查礼包是否存在
-     * @param kitName 礼包名称
-     * @return 是否存在
+     * 检查礼包是否存在（已在行 316 实现，此处删除重复定义）
      */
-    public static boolean kitExists(@NotNull String kitName) {
-        try {
-            cn.wekyjay.www.wkkit.config.KitConfigLoader configLoader = ConfigManager.getKitconfig();
-            if (configLoader == null) {
-                return false;
-            }
-            
-            List<String> kitNames = configLoader.getKits();
-            return kitNames != null && kitNames.contains(kitName);
-            
-        } catch (Exception e) {
-            ExceptionHandler.handleSilently("检查礼包是否存在: " + kitName, e);
-            return false;
-        }
-    }
     
     /**
      * 保存礼包配置

@@ -42,41 +42,24 @@ public class KitGetter{
 		String lastTimeStr = WkKit.getPlayerData().getKitData(p.getName(), kitname);
 
 		// 检查是否可以领取
-		if(lastTimeStr != null) {
-			// 如果状态为true，直接允许领取
-			if("true".equalsIgnoreCase(lastTimeStr)) {
-				// 继续执行领取逻辑
+		if (!kit.canReceive(p.getName())) {
+			if ("false".equalsIgnoreCase(lastTimeStr) || (WkKit.getPlayerData().getKitTime(p.getName(), kitname) != null && WkKit.getPlayerData().getKitTime(p.getName(), kitname) == 0)) {
+				p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_CANTGET", ChatColor.RED) + " §c(次数已用完)");
 			} else {
-				if ("false".equalsIgnoreCase(lastTimeStr)) {
-					return false;
-				}
-				try {
-					// 解析时间字符串
-					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-					Calendar lastTime = Calendar.getInstance();
-					lastTime.setTime(sdf.parse(lastTimeStr));
-					Calendar now = Calendar.getInstance();
-					
-					// 如果还未到领取时间
-					if(now.before(lastTime)) {
-						p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_CANTGET", ChatColor.RED) + 
-							" " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(lastTime.getTime()));
-						return false;
-					}
-				} catch(ParseException e) {
-					MessageManager.infoDeBug("解析时间出错：" + kitname);
-					ExceptionHandler.handle("未知操作", e);
-					return false;
-				}
+				Calendar nextTime = kit.getNextReceiveTime(p.getName());
+				p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_CANTGET", ChatColor.RED) + 
+					" " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(nextTime.getTime()));
 			}
+			return false;
 		}
 
 		// 其他条件检查
+		// Bug 2b 修复：先检查次数，再检查 NoRefreshFirst，避免次数用完时被 MENU_NEED_WAIT 拦截
+		if(kit.getTimes() != null) {if(!this.runTimes(kit, p)) {return false;}}
 		if(kit.isNoRefreshFirst()) {if(!this.runNoRefreshFirst(kit, p)) {return false;}}
 		if(kit.getPermission() != null) {if(!this.runPermission(kit, p)) {return false;}}
-		if(kit.getItemStacks() != null) {if(!this.runItem(kit, p)) {return false;}}
-		if(kit.getTimes() != null) {if(!this.runTimes(kit, p)) {return false;}}
-		if(kit.getVault() != null) {if(!this.runVault(kit,p)){return false;}}
+                if(kit.getItemStacks() != null) {if(!this.runItem(kit, p)) {return false;}}
+                if(kit.getVault() != null && kit.getVault() > 0) {if(!this.runVault(kit,p)){return false;}}
 
 		// 以下代码可以安全执行
 		if(kit.getCommands() != null) { this.runCommands(kit, p);}
@@ -131,33 +114,36 @@ public class KitGetter{
 	 * @return
 	 */
 	public boolean runNoRefreshFirst(Kit kit,Player p) {
-		if (kit.isNoRefreshFirst()){// 不首次刷新
-			p.sendMessage(LangConfigLoader.getStringWithPrefix("MENU_NEED_WAIT",ChatColor.YELLOW));
-			return false;
+		if (kit.isNoRefreshFirst()) {
+			String kitname = kit.getKitname();
+			// 如果玩家有历史领取记录且不是"true"状态，说明需要等待刷新
+			String kitData = WkKit.getPlayerData().getKitData(p.getName(), kitname);
+			if (kitData != null && !"true".equalsIgnoreCase(kitData)) {
+				p.sendMessage(LangConfigLoader.getStringWithPrefix("MENU_NEED_WAIT",ChatColor.YELLOW));
+				return false;
+			}
 		}
 		return true;
 	}
-	/**
-	 * 经济插件支持，检测是否有足够的的金币来领取礼包。
-	 * @param kit 礼包
-	 * @param p 玩家
-	 * @return
-	 */
-	public boolean runVault(Kit kit,Player p) {
-		if(VaultHooker.getEcon() == null) return true;
-		if(VaultHooker.getEcon().getBalance(p.getPlayer()) < kit.getVault()) {
-			p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_NO_MUCH_MONEY",ChatColor.YELLOW));
-			return false;
-		}
-		EconomyResponse economyResponse = VaultHooker.getEcon().withdrawPlayer(p.getPlayer(),kit.getVault());
-		if (economyResponse.transactionSuccess()){
-			p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_DEDUCT_MONEY_SUCCESS",ChatColor.GREEN) + VaultHooker.getEcon().format(kit.getVault()));
-		}else{
-			p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_DEDUCT_MONEY_FAILED",ChatColor.RED));
-		}
+        /**
+         * 经济插件支持，给玩家发放金币奖励。
+         * @param kit 礼包
+         * @param p 玩家
+         * @return
+         */
+        public boolean runVault(Kit kit,Player p) {
+                if(kit.getVault() == null || kit.getVault() <= 0) return true;
+                if(VaultHooker.getEcon() == null) return true;
+                EconomyResponse economyResponse = VaultHooker.getEcon().depositPlayer(p.getPlayer(),kit.getVault());
+                if (economyResponse.transactionSuccess()){
+                        p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_DEDUCT_MONEY_SUCCESS",ChatColor.GREEN) + VaultHooker.getEcon().format(kit.getVault()));
+                }else{
+                        p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_DEDUCT_MONEY_FAILED",ChatColor.RED));
+                        return false;
+                }
 
-		return true;
-	}
+                return true;
+        }
 	/**
 	 * 物品领取到背包
 	 * @param kit 礼包名称
@@ -182,7 +168,8 @@ public class KitGetter{
 		//如果玩家没有领取次数就创建一个
 		String kitname = kit.getKitname();
 		if(WkKit.getPlayerData().getKitTime(p.getName(), kitname) == null) {
-			if(kit.getTimes() < 0 || kit.getTimes() == null) {
+			// 修复：先检查 null 再比较数值，避免 NPE
+			if(kit.getTimes() == null || kit.getTimes() < 0) {
 				WkKit.getPlayerData().setKitTime(p.getName(), kitname, -1);
 				return true;
 			}else {
@@ -193,6 +180,8 @@ public class KitGetter{
 		}
 		int times = WkKit.getPlayerData().getKitTime(p.getName(),kitname);
 		if(times != 0) return true;
+		// Bug 1 修复：次数用完时发送提示消息
+		p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_CANTGET", ChatColor.RED) + " §c(领取次数已用完)");
 		return false;
 
 	}
@@ -218,8 +207,9 @@ public class KitGetter{
 	private void getSuccess(Kit kit, Player p) {
 		String kitname = kit.getKitname();
 		
-		// 处理领取次数
-		int times = kit.getTimes(); // 获取初始领取次数
+		// 处理领取次数（防御性 null 检查）
+		Integer timesObj = kit.getTimes();
+		int times = (timesObj != null) ? timesObj : -1;
 		if(WkKit.getPlayerData().getKitTime(p.getName(), kitname) != null) {
 			times = WkKit.getPlayerData().getKitTime(p.getName(), kitname);
 		} else {
@@ -236,7 +226,7 @@ public class KitGetter{
 			nextTime.setTime(nextExecution);
 		} else if(kit.getDelay() != null && kit.getDelay() > 0) {
 			// 如果有固定延迟，计算下次可领取时间
-			nextTime.add(Calendar.MINUTE, kit.getDelay());
+			nextTime.add(Calendar.SECOND, kit.getDelay());
 		}
 		
 		// 更新data为下次领取时间

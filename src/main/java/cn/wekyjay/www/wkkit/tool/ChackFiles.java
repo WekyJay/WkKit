@@ -1,5 +1,6 @@
 package cn.wekyjay.www.wkkit.tool;
 
+import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.*;

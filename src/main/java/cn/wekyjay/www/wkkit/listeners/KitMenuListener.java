@@ -58,8 +58,13 @@ public class KitMenuListener implements Listener{
 				p.closeInventory();
 			}else {
 				MenuHolder menuholder = (MenuHolder) e.getInventory().getHolder();
-				p.closeInventory();
-				new MenuOpenner().openMenu(menuholder.getMenuname(), p);
+				String menuname = menuholder.getMenuname();
+				// 使用任务延迟刷新菜单，确保数据已保存且客户端状态稳定
+				Bukkit.getScheduler().runTaskLater(WkKit.getWkKit(), () -> {
+					if (p.isOnline()) {
+						new MenuOpenner().openMenu(menuname, p);
+					}
+				}, 1L);
 			}
 		}
 		

@@ -7,6 +7,7 @@ import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -154,25 +155,45 @@ public class KitConfigLoader{
 	 * 读取配置中存在的礼包,并检测有效性
 	 */
 	public void readKitConfig() {
-		List<String> kitlist = this.getKits();
-		int repeatnum = this.checkRepeatKits();
-		//查找重复的礼包
-		if(repeatnum != 0) {
-			Bukkit.getLogger().warning("[WkKit]" + repeatnum + "个礼包加载失败！");
-		}
+		kits.clear(); // 清空旧数据
+		Set<String> loadedKits = new HashSet<>();
 
-		for(String kitname : kitlist) {
-			String displayName = this.getString(kitname + ".Name");
-			String icon = this.getString(kitname + ".Icon");
-			List<String> itemNBT = this.getStringList(kitname + ".Item");
-			ItemStack[] itemStack = new ItemStack[itemNBT.size()];// 0-9 刚好十个
-			int num = 0;
-			for(String nbt : itemNBT) {
-				NBTContainer c = new NBTContainer(nbt);
-				itemStack[num] = NBTItem.convertNBTtoItem(c);
-				num++;
+		for (File file : fileList) {
+			FileConfiguration config = fileConfigMap.get(file.getName());
+			for (String kitname : config.getKeys(false)) {
+				if (loadedKits.contains(kitname)) {
+					Bukkit.getLogger().warning("[WkKit] 跳过重复定义的礼包: " + kitname + " (位于文件: " + file.getName() + ")");
+					continue;
+				}
+				
+				ConfigurationSection section = config.getConfigurationSection(kitname);
+				if (section == null) continue;
+
+				String displayName = section.getString("Name");
+				String icon = section.getString("Icon");
+				
+				if (displayName == null || icon == null) {
+					Bukkit.getLogger().warning("[WkKit] 礼包 " + kitname + " 缺少必要的 Name 或 Icon 属性，加载失败。");
+					continue;
+				}
+
+				List<String> itemNBT = section.getStringList("Item");
+				ItemStack[] itemStack = new ItemStack[itemNBT.size()];
+				int num = 0;
+				for (String nbt : itemNBT) {
+					try {
+						NBTContainer c = new NBTContainer(nbt);
+						itemStack[num] = NBTItem.convertNBTtoItem(c);
+					} catch (Exception e) {
+						Bukkit.getLogger().warning("[WkKit] 礼包 " + kitname + " 中的物品 NBT 解析失败。");
+					}
+					num++;
+				}
+				
+				// 创建 Kit 对象并保存
+				new Kit(kitname, displayName, icon, itemStack, section);
+				loadedKits.add(kitname);
 			}
-			new Kit(kitname,displayName,icon,itemStack);
 		}
 	}
 	

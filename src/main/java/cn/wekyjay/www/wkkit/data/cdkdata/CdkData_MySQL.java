@@ -6,67 +6,69 @@ import java.util.List;
 
 public class CdkData_MySQL implements CdkData {
 
+	private final CdkSQLData cdkSQL = new CdkSQLData();
+
 	@Override
 	public void addCDKToFile(String CDK, String kits, String data, String mark) {
-		new CdkSQLData().insertData(CDK, kits, data, mark);
+		cdkSQL.insertData(CDK, kits, data, mark);
 	}
 
 	@Override
 	public void setCDKStatus(String CDK, String playername) {
-		new CdkSQLData().update_Status(playername, CDK);
-		
+		cdkSQL.update_Status(playername, CDK);
 	}
 
 	@Override
 	public void setCDKMark(String mark, String newmark) {
-		new CdkSQLData().update_Mark(newmark, mark);
+		cdkSQL.update_Mark(newmark, mark);
 	}
 
+	/**
+	 * 修复：原来先 findCDK(mark) 查所有 cdk 再循环 deleteData
+	 * 直接用一条 DELETE FROM cdk WHERE mark = ? 搞定
+	 */
 	@Override
 	public void delCDKOfMark(String mark) {
-		for(String cdk : findCDK(mark)) {
-			new CdkSQLData().deleteData(cdk);;
-		}
+		cdkSQL.deleteDataByMark(mark);
 	}
 
 	@Override
 	public void delCDK(String cdk) {
-		new CdkSQLData().deleteData(cdk);
+		cdkSQL.deleteData(cdk);
 	}
 
 	@Override
 	public List<String> findCDK(String mark) {
-		return new CdkSQLData().findCDK(mark);
+		return cdkSQL.findCDK(mark);
 	}
 
 	@Override
 	public boolean Contain_CDK(String CDK) {
-		return new CdkSQLData().containCDK(CDK);
+		return cdkSQL.containCDK(CDK);
 	}
 
 	@Override
 	public boolean Contain_CDKMark(String mark) {
-		return new CdkSQLData().containMark(mark);
+		return cdkSQL.containMark(mark);
 	}
 
 	@Override
 	public String getCDKKits(String cdk) {
-		return new CdkSQLData().findKits(cdk);
+		return cdkSQL.findKits(cdk);
 	}
 
 	@Override
 	public String getCDKDate(String cdk) {
-		return  new CdkSQLData().findDate(cdk);
+		return cdkSQL.findDate(cdk);
 	}
 
 	@Override
 	public String getCDKStatus(String cdk) {
-		return  new CdkSQLData().findStatus(cdk);
+		return cdkSQL.findStatus(cdk);
 	}
 
 	@Override
 	public String getCDKMark(String cdk) {
-		return new CdkSQLData().findMark(cdk);
+		return cdkSQL.findMark(cdk);
 	}
-
 }

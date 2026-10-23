@@ -11,6 +11,7 @@ import de.tr7zw.changeme.nbtapi.NbtApiException;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -41,12 +42,16 @@ public class Kit {
 	private Calendar nextRC;
 
 	
-	public Kit(@NotNull String kitname,@NotNull String displayname,@NotNull String icon,ItemStack[] itemStack){
+	public Kit(@NotNull String kitname, @NotNull String displayname, @NotNull String icon, ItemStack[] itemStack, ConfigurationSection section) {
 		this.kitname = kitname;
 		this.displayName = displayname;
 		this.icon = icon;
 		this.itemStack = itemStack;
-		this.loadKit(this);
+		this.loadKit(this, section);
+	}
+
+	public Kit(@NotNull String kitname, @NotNull String displayname, @NotNull String icon, ItemStack[] itemStack) {
+		this(kitname, displayname, icon, itemStack, null);
 	}
 	
 	
@@ -75,28 +80,43 @@ public class Kit {
 		return null;
 	}
 	
+	
 
 	
 	
 	/**
 	 * 加载礼包
 	 * @param kit
+	 * @param section 礼包对应的配置小节，如果为 null 则尝试从文件查找
 	 */
-	public void loadKit(Kit kit) {
+	public void loadKit(Kit kit, ConfigurationSection section) {
 		if (kit.isKit()) {
 			String kitname = kit.getKitname();
-			if(ConfigManager.getKitconfig().contains(kitname + ".Commands")) commands = ConfigManager.getKitconfig().getStringList(kitname + ".Commands");
-			if(ConfigManager.getKitconfig().contains(kitname + ".Lore")) lore = ConfigManager.getKitconfig().getStringList(kitname + ".Lore");
-			if(ConfigManager.getKitconfig().contains(kitname + ".Drop")) {drop = ConfigManager.getKitconfig().getStringList(kitname + ".Drop");}
-			if(ConfigManager.getKitconfig().contains(kitname + ".Permission")) permission =  ConfigManager.getKitconfig().getString(kitname + ".Permission");
-			if(ConfigManager.getKitconfig().contains(kitname + ".Delay")) delay =  ConfigManager.getKitconfig().getInt(kitname + ".Delay");
-			if(ConfigManager.getKitconfig().contains(kitname + ".Times")) times = ConfigManager.getKitconfig().getInt(kitname + ".Times");
-			if(ConfigManager.getKitconfig().contains(kitname + ".DoCron")) docron = ConfigManager.getKitconfig().getString(kitname + ".DoCron");
-			if(ConfigManager.getKitconfig().contains(kitname + ".NoRefreshFirst")) noRefreshFirst = ConfigManager.getKitconfig().getBoolean(kitname + ".NoRefreshFirst");
-			if(ConfigManager.getKitconfig().contains(kitname + ".Vault")) vault = ConfigManager.getKitconfig().getInt(kitname + ".Vault");
-			if(ConfigManager.getKitconfig().contains(kitname + ".MythicMobs")) mythicMobs = ConfigManager.getKitconfig().getStringList(kitname + ".MythicMobs");
+			if (section == null) {
+				section = kit.getConfigurationSection();
+			}
+			if (section == null) return;
+
+			commands = section.contains("Commands") ? section.getStringList("Commands") : new ArrayList<>();
+			lore = section.contains("Lore") ? section.getStringList("Lore") : new ArrayList<>();
+			drop = section.contains("Drop") ? section.getStringList("Drop") : new ArrayList<>();
+			permission = section.contains("Permission") ? section.getString("Permission") : null;
+			delay = section.contains("Delay") ? section.getInt("Delay") : 0;
+			times = section.contains("Times") ? section.getInt("Times") : -1;
+			
+			String cronValue = section.contains("DoCron") ? section.getString("DoCron") : null;
+			docron = (cronValue != null && !cronValue.trim().isEmpty()) ? cronValue : null;
+			
+                        noRefreshFirst = section.contains("NoRefreshFirst") && section.getBoolean("NoRefreshFirst");
+                        vault = section.contains("Vault") ? section.getInt("Vault") : null;
+			mythicMobs = section.contains("MythicMobs") ? section.getStringList("MythicMobs") : new ArrayList<>();
+			
 			Kit.getKits().add(kit);
 		}
+	}
+
+	public void loadKit(Kit kit) {
+		this.loadKit(kit, null);
 	}
 	
 	/**
@@ -138,8 +158,10 @@ public class Kit {
 	 */
 	public ConfigurationSection getConfigurationSection() {
 		String groupname = KitGroupManager.getContainName(this);
-		ConfigurationSection cs = KitGroupManager.getGroup(groupname).getConfigurationSection(this.getKitname());
-		return cs;
+		if (groupname == null) return null;
+		FileConfiguration groupConfig = KitGroupManager.getGroup(groupname);
+		if (groupConfig == null) return null;
+		return groupConfig.getConfigurationSection(this.getKitname());
 	}
 	
 	/**
@@ -148,11 +170,14 @@ public class Kit {
 	 */
 	public final void saveConfig() {
 		String groupname = KitGroupManager.getContainName(this);
+		if (groupname == null) return;
 		try {
-			KitGroupManager.getGroup(groupname).save(ConfigManager.getKitconfig().getContainsFile(this.kitname));
+			FileConfiguration groupConfig = KitGroupManager.getGroup(groupname);
+			if (groupConfig != null) {
+				groupConfig.save(ConfigManager.getKitconfig().getContainsFile(this.kitname));
+			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			ExceptionHandler.handle("未知操作", e);
+			ExceptionHandler.handle("保存礼包配置出错", e);
 		}
 	}
 	
@@ -357,44 +382,43 @@ public class Kit {
 	
 	// 添加新的判断方法
 	public boolean canReceive(String playerName) {
-		Calendar now = Calendar.getInstance();
 		String lastTimeStr = WkKit.getPlayerData().getKitData(playerName, this.kitname);
-		// 如果是第一次领取
-		if(lastTimeStr == null) {
-			return true;
-		}
+		Integer currentKitTime = WkKit.getPlayerData().getKitTime(playerName, this.kitname);
+		
+		// 如果次数用完
+		if(currentKitTime != null && currentKitTime == 0) return false;
+		if("false".equalsIgnoreCase(lastTimeStr)) return false;
+		
+		// 如果是第一次领取或状态为可领取
+		if(lastTimeStr == null || "true".equalsIgnoreCase(lastTimeStr)) return true;
 		
 		try {
-			// 解析上次领取时间
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d-H-m-s");
-			Calendar lastTime = Calendar.getInstance();
-			lastTime.setTime(sdf.parse(lastTimeStr));
+			// 解析记录的时间
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Calendar storedTime = Calendar.getInstance();
+			storedTime.setTime(sdf.parse(lastTimeStr));
+			Calendar now = Calendar.getInstance();
 			
-			// 检查固定延迟(delay)
-			if(delay != null && delay > 0) {
-				Calendar nextTime = (Calendar) lastTime.clone();
-				nextTime.add(Calendar.MINUTE, delay);
-				if(now.before(nextTime)) {
-					return false;
+			// 如果现在时间已经到了记录的时间
+			if(!now.before(storedTime)) {
+				return true;
+			}
+			
+			// --- 兼容逻辑：从 Cron 切换到 Delay ---
+			// 如果当前是 Delay 模式且没有 Cron 表达式
+			if (this.docron == null && this.delay != null && this.delay > 0) {
+				// 如果存储的时间比 (现在 + Delay) 还要晚，说明这可能是一个旧的 Cron 刷新时间
+				Calendar maxDelayTime = Calendar.getInstance();
+				maxDelayTime.add(Calendar.SECOND, this.delay);
+				if (storedTime.after(maxDelayTime)) {
+					// 自动修正为 (现在 + Delay) 或者直接允许领取（取决于管理员意图，这里选择允许领取以提升体验）
+					return true; 
 				}
 			}
 			
-			// 检查Cron表达式
-			if(docron != null) {
-				Date nextExecution = CronManager.getNextExecution(this.docron);
-				Calendar cronNextTime = Calendar.getInstance();
-				cronNextTime.setTime(nextExecution);
-				
-				// 如果现在时间在上次领取时间和下次执行时间之间，说明还未到领取时间
-				if(now.after(lastTime) && now.before(cronNextTime)) {
-					return false;
-				}
-			}
-			
-			return true;
-		} catch (ParseException e) {
-			ExceptionHandler.handle("未知操作", e);
 			return false;
+		} catch (ParseException e) {
+			return true; // 解析失败则默认允许领取，防止锁定
 		}
 	}
 
@@ -407,41 +431,33 @@ public class Kit {
 		String lastTimeStr = WkKit.getPlayerData().getKitData(playerName, this.kitname);
 		Calendar nextTime = Calendar.getInstance();
 		
-		// 如果状态为true，直接返回当前时间
-		if("true".equalsIgnoreCase(lastTimeStr)) {
+		// 如果状态为true或未领取，返回当前时间表示可领取
+		if(lastTimeStr == null || "true".equalsIgnoreCase(lastTimeStr)) {
 			return nextTime;
 		}
 		
 		try {
-			// 如果有历史记录，解析上次领取时间
-			if(lastTimeStr != null) {
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				Calendar lastTime = Calendar.getInstance();
-				lastTime.setTime(sdf.parse(lastTimeStr));
-				
-				// 如果有固定延迟
-				if(delay != null && delay > 0) {
-					nextTime = (Calendar) lastTime.clone();
-					nextTime.add(Calendar.MINUTE, delay);
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Calendar storedTime = Calendar.getInstance();
+			storedTime.setTime(sdf.parse(lastTimeStr));
+			
+			// 如果已经到了可领取时间
+			if (!Calendar.getInstance().before(storedTime)) {
+				return Calendar.getInstance();
+			}
+
+			// --- 兼容逻辑：从 Cron 切换到 Delay ---
+			if (this.docron == null && this.delay != null && this.delay > 0) {
+				Calendar maxDelayTime = Calendar.getInstance();
+				maxDelayTime.add(Calendar.SECOND, this.delay);
+				if (storedTime.after(maxDelayTime)) {
+					return Calendar.getInstance(); // 立即允许领取
 				}
 			}
 			
-			// 如果有Cron表达式
-			if(docron != null) {
-				Date nextExecution = CronManager.getNextExecution(this.docron);
-				Calendar cronNextTime = Calendar.getInstance();
-				cronNextTime.setTime(nextExecution);
-				
-				// 取较晚的时间作为下次可领取时间
-				if(cronNextTime.after(nextTime)) {
-					nextTime = cronNextTime;
-				}
-			}
-			
+			return storedTime;
 		} catch (ParseException e) {
-			ExceptionHandler.handle("未知操作", e);
+			return nextTime;
 		}
-		
-		return nextTime;
 	}
 }

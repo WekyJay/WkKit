@@ -129,6 +129,19 @@ public final class KitConfig {
         return getMaxUses() == -1;
     }
     
+    // 别名方法，兼容旧代码调用
+    public boolean hasLimitedUses() {
+        return !isUnlimitedUses();
+    }
+    
+    public boolean hasEconomyReward() {
+        return hasVaultReward();
+    }
+    
+    public boolean hasMythicMobsReward() {
+        return hasMythicMobs();
+    }
+    
     // Builder模式
     public static Builder builder() {
         return new Builder();

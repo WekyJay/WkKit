@@ -74,6 +74,10 @@ public class WkKit extends JavaPlugin {
     public static WkKit getWkKit() {
         return wkkit;
     }
+    // 别名方法，兼容 v2 重构代码
+    public static WkKit getInstance() {
+        return wkkit;
+    }
 
 
     /*插件启动标识*/

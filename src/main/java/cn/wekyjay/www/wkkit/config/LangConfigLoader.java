@@ -63,10 +63,12 @@ public class LangConfigLoader {
 	// 封装BukkitAPI的方法
 	
 	public static Boolean contains(String path) {
+		if (langConfig == null) return false;
 		return langConfig.contains(path);
 	}
 	
 	public static String getString(String path) {
+		if (langConfig == null) return "Lang missing: " + path;
 		if(LangConfigLoader.contains(path)) {
 			return ChatColor.translateAlternateColorCodes('&',langConfig.getString(path));
 		}
