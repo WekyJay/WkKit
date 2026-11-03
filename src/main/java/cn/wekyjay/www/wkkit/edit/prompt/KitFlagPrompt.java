@@ -48,6 +48,8 @@ class KitFlagPrompt_SetFlag extends ValidatingPrompt{
 	      return false;
 	    if (flag.equals("Vault") && (input.equalsIgnoreCase("Cancel") || !input.matches("[0-9]+")))
 	      return false;
+	    if (flag.equals("NoRefreshFirst") && !input.equalsIgnoreCase("Cancel") && !input.equalsIgnoreCase("true") && !input.equalsIgnoreCase("false"))
+	      return false;
 	    return (input.length() > 0);
 	}
 
@@ -109,13 +111,16 @@ class KitFlagPrompt_DeFlag extends ValidatingPrompt{
 		case "DisplayName": kit.setDisplayName(WkKit.getWkKit().getConfig().getString("Default.Name"));break;
 		case "Icon": kit.setIcon(WkKit.getWkKit().getConfig().getString("Default.Icon"));break;
 		case "Permission": kit.setPermission(null);break;
-		case "Times": kit.setTimes(null);break;
-		case "Delay": kit.setDelay(null);break;
+		case "Times": kit.setTimes(-1);break;
+		case "Delay": kit.setDelay(0);break;
 		case "DoCron": kit.setDocron(null);break;
-		case "Lore" : kit.setLore(null);break;
-		case "MythicMobs" : kit.setMythicMobs(null);break;
-		case "Drop": kit.setDrop(null);break;
-		case "Commands": kit.setCommands(null);break;
+		case "Lore" : kit.setLore(java.util.Collections.<String>emptyList());break;
+		case "MythicMobs" : kit.setMythicMobs(java.util.Collections.<String>emptyList());break;
+		case "Drop": kit.setDrop(java.util.Collections.<String>emptyList());break;
+		case "Commands": kit.setCommands(java.util.Collections.<String>emptyList());break;
+		case "Vault": kit.setVault(null);break;
+		case "NoRefreshFirst": kit.setNoRefreshFirst(false);break;
+		case "Item": kit.setItemStack(new org.bukkit.inventory.ItemStack[0]);break;
 		}
 		kit.saveConfig(); // 保存礼包配置
 		context.getForWhom().sendRawMessage("§a删除成功！");

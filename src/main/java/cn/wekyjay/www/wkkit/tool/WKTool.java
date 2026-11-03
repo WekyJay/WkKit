@@ -223,15 +223,9 @@ public class WKTool{
 	 * @return x.xx.x
 	 */
 	public static int getVersion() {
-		String[] versions = Bukkit.getBukkitVersion().split("\\.");//获得版本号并且分割给version字符串组
-		
-		Pattern pattern = Pattern.compile("^-?\\d+(\\.\\d+)?$");
-        if(pattern.matcher(versions[1]).matches()) {
-    		int versionsnum = Integer.parseInt(versions[1]);//16
-    		return versionsnum;
-        }
-        // 否则默认
-        return 99;
+		String[] versions = getFullVersion().split("\\.");
+		int major = Integer.parseInt(versions[0]);
+		return major == 1 && versions.length > 1 ? Integer.parseInt(versions[1]) : major;
 	}
 	
 	/**
@@ -254,7 +248,7 @@ public class WKTool{
 	public static ItemStack getPlayerHead(OfflinePlayer offlinePlayer){
 		ItemStack is = null;
 		int version = getVersion();
-		if (version < 16 && version >= 12){
+		if (version < 13 && version >= 12){
 			is = new ItemStack(Material.valueOf("SKULL_ITEM"), 1, (short)3);
 			SkullMeta skullMeta = (SkullMeta) is.getItemMeta();
 			skullMeta.setOwningPlayer(offlinePlayer);
@@ -317,6 +311,18 @@ public class WKTool{
 		String bukkitVersion = Bukkit.getBukkitVersion();
 		String[] parts = bukkitVersion.split("-");
 		return parts[0];
+	}
+
+	/** InventoryView changed from a class to an interface in newer Bukkit APIs. */
+	public static org.bukkit.inventory.Inventory getOpenTopInventory(Player player) {
+		try {
+			Object view = player.getOpenInventory();
+			Method method = view.getClass().getMethod("getTopInventory");
+			method.setAccessible(true);
+			return (org.bukkit.inventory.Inventory) method.invoke(view);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Unable to read player's inventory view", e);
+		}
 	}
 
 	/**

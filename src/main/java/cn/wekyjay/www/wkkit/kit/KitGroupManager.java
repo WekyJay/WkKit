@@ -3,6 +3,7 @@ package cn.wekyjay.www.wkkit.kit;
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.mysql.KitDataStore;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -17,6 +18,16 @@ import java.util.Map;
 public class KitGroupManager{
 	public KitGroupManager() {}
 	public KitGroupManager(String groupname) {
+		if (ConfigManager.getKitconfig().isDatabaseMode()) {
+			if (!contains(groupname)) {
+				File virtualFile = new File(groupname + ".yml");
+				YamlConfiguration config = new YamlConfiguration();
+				ConfigManager.getKitconfig().getFileList().add(virtualFile);
+				ConfigManager.getKitconfig().getFileConfigMap().put(virtualFile.getName(), config);
+				KitDataStore.putGroup(groupname);
+			}
+			return;
+		}
 		File file = new File(WkKit.getWkKit().getDataFolder().getAbsolutePath() + File.separator + "Kits" + File.separator + groupname + ".yml");
 		if(!file.exists()) {
 			try {
@@ -37,7 +48,8 @@ public class KitGroupManager{
 		int num = ConfigManager.getKitconfig().getFileList().size();
 		List<String> groups = new ArrayList<>();
 		for(int i = 0; i < num; i++) {
-			groups.add(ConfigManager.getKitconfig().getFileList().get(i).getName().split(".yml")[0].toString());
+			String filename = ConfigManager.getKitconfig().getFileList().get(i).getName();
+			groups.add(filename.endsWith(".yml") ? filename.substring(0, filename.length() - 4) : filename);
 		}
 		return groups;
 	}

@@ -2,6 +2,7 @@ package cn.wekyjay.www.wkkit.tool;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidPooledConnection;
+import javax.sql.DataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -18,6 +19,7 @@ public class Druid {
 
         druidDataSource=new DruidDataSource();
         druidDataSource.setUrl(url);
+        druidDataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
         druidDataSource.setUsername(userName);
         druidDataSource.setPassword(userPassword);
         //可选设置
@@ -38,6 +40,10 @@ public class Druid {
             //如果连接出现异常，则抛出一个运行时异常
             throw new RuntimeException("连接池出现异常.");
         }
+    }
+
+    public static DataSource getDataSource() {
+        return druidDataSource;
     }
 
     public static void shutdown(){

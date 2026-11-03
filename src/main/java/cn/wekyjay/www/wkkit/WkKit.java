@@ -28,6 +28,7 @@ import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -190,6 +191,14 @@ public class WkKit extends JavaPlugin {
         if(Objects.requireNonNull(WkKit.wkkit.getConfig().getString("MySQL.Enable")).equalsIgnoreCase("true")) {
             HandySchedulerUtil.runTaskAsynchronously(()-> {
                     MySQLManager.get().enableMySQL();
+                    if (MySQLManager.get().isReady()) {
+                        HandySchedulerUtil.runTask(() -> {
+                            ConfigManager.reloadKit();
+                            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("KIT_NUM") + Kit.getKits().size());
+                            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("MENU_NUM") + MenuManager.getInvs().size());
+                        });
+                        return;
+                    }
                     MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("KIT_NUM") + Kit.getKits().size());
                     MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("MENU_NUM") + MenuManager.getInvs().size());
             });
@@ -210,17 +219,41 @@ public class WkKit extends JavaPlugin {
 
     }
 
+    public static boolean isFoliaServer() {
+        return HandySchedulerUtil.isFolia();
+    }
+
+    public static void runForPlayer(Player player, Runnable task, long delayTicks) {
+        Runnable onlineTask = () -> { if (player.isOnline()) task.run(); };
+        if (!isFoliaServer()) {
+            Bukkit.getScheduler().runTaskLater(wkkit, onlineTask, Math.max(1L, delayTicks));
+            return;
+        }
+        // Resolve Folia classes only on Folia; ordinary Bukkit servers do not provide them.
+        try {
+            Object scheduler = org.bukkit.entity.Entity.class.getMethod("getScheduler").invoke(player);
+            Class<?> schedulerType = Class.forName("io.papermc.paper.threadedregions.scheduler.EntityScheduler");
+            java.util.function.Consumer<Object> callback = ignored -> onlineTask.run();
+            schedulerType.getMethod("runDelayed", org.bukkit.plugin.Plugin.class,
+                    java.util.function.Consumer.class, Runnable.class, long.class)
+                    .invoke(scheduler, wkkit, callback, null, Math.max(1L, delayTicks));
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Unable to schedule task on the Folia player thread", e);
+        }
+    }
+
     /*插件关闭标识*/
     @Override
     public void onDisable() {
         // 关闭数据库
         if(WkKit.wkkit.getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
-            Druid.shutdown(); // 回收连接池
+            MySQLManager.get().shutdown();
             WkKit.getWkKit().getLogger().info(LangConfigLoader.getString("MYSQL_SHUTDOWN"));
         }
         try {
             // 保存日志
-            KitCache.getCache().saveCache();
+            KitCache cache = KitCache.getInitializedCache();
+            if (cache != null && getConfig().getBoolean("Cache.Enable")) cache.saveCache();
             // 保存关服时间
             File file = new File(WkKit.getWkKit().getDataFolder(),"config.yml");
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

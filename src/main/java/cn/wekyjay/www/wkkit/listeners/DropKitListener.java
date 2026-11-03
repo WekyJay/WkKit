@@ -25,7 +25,7 @@ public class DropKitListener implements Listener{
 	@EventHandler
 	public void onPlayerClickKit(PlayerInteractEvent e) {
 		if(!e.hasItem() || e.getItem() == null) {return;}//手上没有东西就结束方法
-		if(WKTool.getVersion() > 9 && !e.getHand().equals(EquipmentSlot.HAND)) {// 如果是高版本不是副手的话就返回
+		if(WKTool.getVersion() >= 9 && !e.getHand().equals(EquipmentSlot.HAND)) {// 忽略副手触发
 			return;
 		}
 		if(ItemEditer.hasWkKitTag(e.getItem())) {

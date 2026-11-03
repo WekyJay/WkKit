@@ -46,12 +46,10 @@ public  class KitSend {
 			// 异步执行判断
 			int finalKitnum = kitnum;
 
-			if (HandySchedulerUtil.isFolia()){
-				HandySchedulerUtil.runTaskAsynchronously(() ->{
-					this.sendAsyn(target,kitname,sender,finalKitnum);
-				});
-			}else {
-				Bukkit.getScheduler().runTask(wk,()->{
+			if (WkKit.isFoliaServer()) {
+				HandySchedulerUtil.runTaskAsynchronously(() -> this.sendAsyn(target, kitname, sender, finalKitnum));
+			} else {
+				HandySchedulerUtil.runTask(() -> {
 					this.sendAsyn(target,kitname,sender,finalKitnum);
 				});
 			}

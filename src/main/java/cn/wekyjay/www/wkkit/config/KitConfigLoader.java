@@ -3,6 +3,10 @@ package cn.wekyjay.www.wkkit.config;
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.mysql.KitDataStore;
+import cn.wekyjay.www.wkkit.mysql.MySQLManager;
+import cn.wekyjay.www.wkkit.mysql.entity.KitGroupRecord;
+import cn.wekyjay.www.wkkit.mysql.entity.KitRecord;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -39,8 +43,17 @@ public class KitConfigLoader{
 	 * 加载文件夹中的配置文件
 	 */
 	public void loadConfig() {
+		fileList.clear();
+		fileConfigMap.clear();
+		kits.clear();
+		if (isDatabaseMode()) {
+			loadDatabaseConfig();
+			readKitConfig();
+			return;
+		}
 		String path = WkKit.getWkKit().getDataFolder().getAbsolutePath() + File.separator + "Kits";
 		File[] ff = new File(path).listFiles();
+		if (ff == null) return;
 		 for(File fs : ff) {
 			 if(fs.isFile() && fs.getName().endsWith(".yml")) {
 				 fileList.add(fs);
@@ -48,6 +61,69 @@ public class KitConfigLoader{
 			 }
 		 }
 		 readKitConfig(); 
+	}
+
+	public boolean isDatabaseMode() {
+		return WkKit.getWkKit().getConfig().getBoolean("MySQL.Enable") && MySQLManager.get().isReady();
+	}
+
+	private void loadDatabaseConfig() {
+		for (KitGroupRecord row : KitDataStore.allGroups()) {
+			File virtualFile = new File(row.getName() + ".yml");
+			YamlConfiguration config = new YamlConfiguration();
+			for (KitRecord kit : KitDataStore.kitsInGroup(row.getId())) {
+				try {
+					YamlConfiguration kitYaml = new YamlConfiguration();
+					kitYaml.loadFromString(kit.getConfig());
+					ConfigurationSection section = kitYaml.getConfigurationSection(kit.getKitname());
+					if (section != null) config.createSection(kit.getKitname(), section.getValues(true));
+				} catch (Exception e) { ExceptionHandler.handle("加载数据库礼包 " + kit.getKitname(), e); }
+			}
+			fileList.add(virtualFile);
+			fileConfigMap.put(virtualFile.getName(), config);
+		}
+	}
+
+	/** Import legacy group snapshots and YAML kits; database kits with duplicate names remain authoritative. */
+	public void importYamlToDatabase() throws Exception {
+		Map<String, String> legacySnapshots = MySQLManager.get().getLegacyGroupConfigs();
+		for (KitGroupRecord existing : KitDataStore.allGroups()) {
+			String legacyConfig = legacySnapshots.get(existing.getName());
+			if (legacyConfig == null || legacyConfig.trim().isEmpty()) continue;
+			YamlConfiguration snapshot = new YamlConfiguration();
+			snapshot.loadFromString(legacyConfig);
+			File virtualFile = new File(existing.getName() + ".yml");
+			KitDataStore.importYamlGroup(existing.getName(), getKitRows(virtualFile, snapshot));
+		}
+		for (File file : fileList) {
+			FileConfiguration config = fileConfigMap.get(file.getName());
+			if (config == null) continue;
+			List<KitRecord> rows = new ArrayList<>();
+			for (String kitName : config.getKeys(false)) {
+				ConfigurationSection section = config.getConfigurationSection(kitName);
+				if (section == null) continue;
+				YamlConfiguration kitYaml = new YamlConfiguration();
+				kitYaml.createSection(kitName, section.getValues(true));
+				KitRecord row = new KitRecord(); row.setKitname(kitName); row.setConfig(kitYaml.saveToString());
+				rows.add(row);
+			}
+			KitDataStore.importYamlGroup(groupName(file), rows);
+		}
+	}
+
+	private String groupName(File file) { return file.getName().substring(0, file.getName().length() - 4); }
+
+	private List<KitRecord> getKitRows(File file, FileConfiguration config) {
+		List<KitRecord> rows = new ArrayList<>();
+		for (String kitName : config.getKeys(false)) {
+			ConfigurationSection section = config.getConfigurationSection(kitName);
+			if (section == null) continue;
+			YamlConfiguration kitYaml = new YamlConfiguration();
+			kitYaml.createSection(kitName, section.getValues(true));
+			KitRecord row = new KitRecord(); row.setKitname(kitName); row.setConfig(kitYaml.saveToString());
+			rows.add(row);
+		}
+		return rows;
 	}
 
 	
@@ -232,7 +308,15 @@ public class KitConfigLoader{
 	public void set(String path,Object value,String filename) {
 		if(getConfigWithPath(path) == null) {
 			File file = new File(WkKit.getWkKit().getDataFolder().getAbsolutePath() + File.separator + "Kits" + File.separator + filename + ".yml");
-			if(!file.exists()) {try {
+			if (isDatabaseMode()) {
+				file = new File(filename + ".yml");
+				if (!fileConfigMap.containsKey(file.getName())) {
+					YamlConfiguration config = new YamlConfiguration();
+					fileList.add(file);
+					fileConfigMap.put(file.getName(), config);
+					KitDataStore.putGroup(filename);
+				}
+			} else if(!file.exists()) {try {
 				file.createNewFile();
 				new KitGroupManager(filename);
 				fileConfigMap.put(file.getName(),YamlConfiguration.loadConfiguration(file));
@@ -248,7 +332,14 @@ public class KitConfigLoader{
 
 	
 	public  void save(String filename) throws IOException {
+		FileConfiguration config = getConfig(filename);
+		if (config == null) return;
+		if (isDatabaseMode()) {
+			File file = new File(filename);
+			KitDataStore.saveGroup(groupName(file), getKitRows(file, config));
+			return;
+		}
 		String path = WkKit.getWkKit().getDataFolder().getAbsolutePath() +  File.separator + "Kits" + File.separator + filename;
-		getConfig(filename).save(new File(path));
+		config.save(new File(path));
 	}
 }

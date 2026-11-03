@@ -28,7 +28,7 @@ public class NewComerListener implements Listener {
 					&& e.getPlayer().getStatistic(Statistic.LEAVE_GAME) > 0) return;
 	    	if(WkKit.getPlayerData().contain_Kit(pname, nckitname))return;
 
-			HandySchedulerUtil.runTaskLater(()->{
+			WkKit.runForPlayer(e.getPlayer(), ()->{
 				if(isauto) {
 					if (mode == 1){
 						e.getPlayer().getInventory().addItem(nckit.getKitItem());

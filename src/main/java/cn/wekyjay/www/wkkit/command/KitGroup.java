@@ -9,6 +9,7 @@ import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.mysql.KitDataStore;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -81,7 +82,8 @@ public class KitGroup {
 					KitGroupManager.toGroup(Kit.getKit(kitname), "Default");
 				}
 			}
-			file.delete();
+			if (ConfigManager.getKitconfig().isDatabaseMode()) KitDataStore.removeGroup(groupname);
+			else file.delete();
 			ConfigManager.reloadKit();
 			ConfigManager.reloadMenu();
 			sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GROUP_DELETE_SUCCESS", ChatColor.GREEN));

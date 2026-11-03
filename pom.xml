@@ -5,25 +5,22 @@
     <modelVersion>4.0.0</modelVersion>
   <groupId>cn.wekyjay.www</groupId>
   <artifactId>WkKit</artifactId>
-  <version>1.4.8</version>
+  <version>1.4.9</version>
 	<properties>
-		<java.version>1.8</java.version>
+		<java.version>8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
   
    <build>
    <defaultGoal>compile</defaultGoal>
+      <finalName>${project.artifactId}-${project.version}</finalName>
       <plugins>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-			<version>3.6.0</version>
+            <version>3.16.0</version>
             <configuration>
-                <source>${java.version}</source>
-                <target>${java.version}</target>
-				<compilerArguments>
-					<extdirs>${project.basedir}/lib</extdirs>
-				</compilerArguments>
+					<release>${java.version}</release>
 				<excludes>
 					<exclude>**/command/v2/**</exclude>
 					<exclude>**/command/KitCommandV2.java</exclude>
@@ -34,17 +31,11 @@
 					<exclude>**/kit/model/**</exclude>
 				</excludes>
             </configuration>
-            <executions>
-                <execution>
-                    <id>default-testCompile</id>
-                    <phase>none</phase>
-                </execution>
-            </executions>
         </plugin>
 		<plugin>
 			<groupId>org.apache.maven.plugins</groupId>
 			<artifactId>maven-shade-plugin</artifactId>
-			<version>3.6.0</version>
+			<version>3.6.2</version>
 			<executions>
 				<execution>
 					<phase>package</phase>
@@ -56,27 +47,56 @@
 							<includes>
 								<include>com.cronutils</include>
 								<include>com.alibaba</include>
+								<include>cn.handyplus.lib.adapter:FoliaLib:*:*</include>
+								<include>com.baomidou</include>
+								<include>org.mybatis</include>
+								<include>com.mysql</include>
+								<include>com.github.jsqlparser</include>
+								<include>de.ruedigermoeller</include>
+								<include>org.apache.fury</include>
+								<include>com.github.ben-manes.caffeine</include>
+								<include>org.jsqlparser</include>
 								<include>de.tr7zw</include>
-								<include>cn.handyplus.lib.adapter:*:*:*</include>
+								<include>org.slf4j:slf4j-jdk14</include>
+								<include>org.slf4j:slf4j-api</include>
 							</includes>
 						</artifactSet>
 						<createDependencyReducedPom>false</createDependencyReducedPom>
+						<transformers>
+							<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+						</transformers>
+						<filters>
+							<filter>
+								<artifact>*:*</artifact>
+								<excludes>
+									<exclude>META-INF/*.SF</exclude>
+									<exclude>META-INF/*.RSA</exclude>
+									<exclude>META-INF/*.DSA</exclude>
+									<exclude>META-INF/versions/**</exclude>
+									<exclude>module-info.class</exclude>
+								</excludes>
+							</filter>
+						</filters>
 						<relocations>
+							<relocation>
+								<pattern>org.slf4j</pattern>
+								<shadedPattern>cn.wekyjay.www.wkkit.lib.slf4j</shadedPattern>
+							</relocation>
 							<relocation>
 								<pattern>com.cronutils</pattern>
 								<shadedPattern>cn.wekyjay.www.wkkit.lib.cronutils</shadedPattern>
 							</relocation>
+						<relocation>
+							<pattern>com.alibaba.druid</pattern>
+							<shadedPattern>cn.wekyjay.www.wkkit.lib.alibaba</shadedPattern>
+						</relocation>
 							<relocation>
-								<pattern>com.alibaba.druid</pattern>
-								<shadedPattern>cn.wekyjay.www.wkkit.lib.alibaba</shadedPattern>
+								<pattern>cn.handyplus.lib.adapter</pattern>
+								<shadedPattern>cn.wekyjay.www.wkkit.lib.folialib</shadedPattern>
 							</relocation>
 							<relocation>
 								<pattern>de.tr7zw.changeme.nbtapi</pattern>
 								<shadedPattern>cn.wekyjay.www.wkkit.lib.nbtapi</shadedPattern>
-							</relocation>
-							<relocation>
-								<pattern>cn.handyplus.lib.adapter</pattern>
-								<shadedPattern>cn.wekyjay.www.wkkit.lib.folialib</shadedPattern>
 							</relocation>
 						</relocations>
 
@@ -98,6 +118,10 @@
            <id>spigot-repo</id>
            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
        </repository>
+	   <repository>
+		   <id>papermc</id>
+		   <url>https://repo.papermc.io/repository/maven-public/</url>
+	   </repository>
 	   <!-- CodeMC -->
 	   <repository>
 		   <id>codemc-repo</id>
@@ -118,28 +142,29 @@
 		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
-			<version>1.21.11-R0.1-SNAPSHOT</version>
+			<version>1.20.4-R0.1-20240423.152506-123</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>cn.handyplus.lib.adapter</groupId>
 			<artifactId>FoliaLib</artifactId>
-			<version>1.2.0</version>
+			<version>1.3.2</version>
 		</dependency>
 		<dependency>
 			<groupId>de.tr7zw</groupId>
 			<artifactId>item-nbt-api</artifactId>
-			<version>2.15.5</version>
+			<version>2.16.1</version>
 		</dependency>
 		<dependency>
 	         <groupId>me.clip</groupId>
 	          <artifactId>placeholderapi</artifactId>
-	          <version>2.11.6</version>
+			<version>2.12.3</version>
 	         <scope>provided</scope>
         </dependency>
 		<dependency>
 		    <groupId>com.cronutils</groupId>
 		    <artifactId>cron-utils</artifactId>
-		    <version>9.2.0</version>
+		    <version>9.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.MilkBowl</groupId>
@@ -150,12 +175,37 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.2.18</version>
+			<version>1.2.28</version>
+		</dependency>
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-core</artifactId>
+			<version>3.5.18</version>
+		</dependency>
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-jsqlparser-4.9</artifactId>
+			<version>3.5.18</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
+			<version>2.0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mybatis</groupId>
+			<artifactId>mybatis-spring</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<version>8.0.33</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
 			<version>2.9.3</version>
 		</dependency>
-	</dependencies> 
+	</dependencies>
 </project>

@@ -1,6 +1,7 @@
 package cn.wekyjay.www.wkkit.edit;
 
 import cn.wekyjay.www.wkkit.WkKit;
+import cn.handyplus.lib.adapter.HandySchedulerUtil;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.edit.prompt.KitDeletePrompt;
 import cn.wekyjay.www.wkkit.edit.prompt.KitFlagPrompt;
@@ -10,6 +11,10 @@ import cn.wekyjay.www.wkkit.invholder.EditKitItemHolder;
 import cn.wekyjay.www.wkkit.invholder.EditKitMainHolder;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
+import cn.wekyjay.www.wkkit.config.ConfigManager;
+import cn.wekyjay.www.wkkit.mysql.KitDataStore;
+import cn.wekyjay.www.wkkit.mysql.entity.KitGroupRecord;
+import cn.wekyjay.www.wkkit.mysql.entity.KitRecord;
 import cn.wekyjay.www.wkkit.tool.ItemEditer;
 import cn.wekyjay.www.wkkit.tool.WKTool;
 import cn.wekyjay.www.wkkit.tool.items.GlassPane;
@@ -23,6 +28,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,11 +36,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.bukkit.event.inventory.InventoryAction.NOTHING;
 import static org.bukkit.event.inventory.InventoryAction.UNKNOWN;
 
 public class EditKit implements Listener {
+	private static final ConcurrentHashMap<UUID, AtomicLong> PAGE_REQUESTS = new ConcurrentHashMap<>();
 	private String editTitle;
 	private Inventory[] kitGroupInvs; // 礼包组管理界面
 	private List<ItemStack> kitGroupItemList;
@@ -113,6 +124,114 @@ public class EditKit implements Listener {
 		}
 	}
 
+	public static void openDatabaseMain(Player player, int page) {
+		requestPage(player, page, null, true);
+	}
+
+	public static void openDatabaseGroup(Player player, String group, int page) {
+		requestPage(player, page, group, false);
+	}
+
+	private static void requestPage(Player player, int page, String group, boolean groups) {
+		Inventory source = WKTool.getOpenTopInventory(player);
+		long version = PAGE_REQUESTS.computeIfAbsent(player.getUniqueId(), ignored -> new AtomicLong()).incrementAndGet();
+		int requestedPage = Math.max(1, page);
+		HandySchedulerUtil.runTaskAsynchronously(() -> {
+			try {
+				if (groups) {
+					int resolvedPage = requestedPage;
+					com.baomidou.mybatisplus.extension.plugins.pagination.Page<KitGroupRecord> result = KitDataStore.pageGroups(resolvedPage, 45);
+					if (result.getPages() == 0) resolvedPage = 1;
+					else if (resolvedPage > result.getPages()) {
+						resolvedPage = (int) result.getPages();
+						result = KitDataStore.pageGroups(resolvedPage, 45);
+					}
+					final int displayPage = resolvedPage;
+					final com.baomidou.mybatisplus.extension.plugins.pagination.Page<KitGroupRecord> pageResult = result;
+					WkKit.runForPlayer(player, () -> {
+						AtomicLong latest = PAGE_REQUESTS.get(player.getUniqueId());
+						if (!player.isOnline() || latest == null || latest.get() != version || WKTool.getOpenTopInventory(player) != source) return;
+						player.openInventory(buildDatabaseMain(pageResult.getRecords(), displayPage, pageResult.getPages()));
+					}, 0L);
+				} else {
+					int resolvedPage = requestedPage;
+					com.baomidou.mybatisplus.extension.plugins.pagination.Page<KitRecord> result = KitDataStore.pageKits(group, resolvedPage, 28);
+					if (result.getPages() == 0) resolvedPage = 1;
+					else if (resolvedPage > result.getPages()) {
+						resolvedPage = (int) result.getPages();
+						result = KitDataStore.pageKits(group, resolvedPage, 28);
+					}
+					final int displayPage = resolvedPage;
+					final com.baomidou.mybatisplus.extension.plugins.pagination.Page<KitRecord> pageResult = result;
+					WkKit.runForPlayer(player, () -> {
+						AtomicLong latest = PAGE_REQUESTS.get(player.getUniqueId());
+						if (!player.isOnline() || latest == null || latest.get() != version || WKTool.getOpenTopInventory(player) != source) return;
+						player.openInventory(buildDatabaseGroup(group, pageResult.getRecords(), displayPage, pageResult.getPages()));
+					}, 0L);
+				}
+			} catch (Exception e) {
+				WkKit.getWkKit().getLogger().warning("编辑菜单分页查询失败: " + e.getMessage());
+				WkKit.runForPlayer(player, () -> player.sendMessage("§c编辑菜单读取失败，请稍后重试。"), 0L);
+			}
+		});
+	}
+
+	private static Inventory buildDatabaseMain(List<KitGroupRecord> groups, int page, long pages) {
+		String title = LangConfigLoader.getString("EDIT_KIT_TITLE");
+		if (pages > 1) title += " - " + WKTool.replacePlaceholder("page", String.valueOf(page), LangConfigLoader.getString("GUI_PAGETITLE"));
+		Inventory inv = Bukkit.createInventory(new EditKitMainHolder(), 54, title);
+		ItemStack pane = menuPane();
+		for (int slot = 45; slot < 54; slot++) inv.setItem(slot, pane);
+		for (int i = 0; i < groups.size() && i < 45; i++) {
+			String name = groups.get(i).getName();
+			ItemStack item = new ItemEditer(new ItemStack(Material.BOOK)).setDisplayName(name).getItemStack();
+			NBT.modify(item, nbt -> { nbt.setString("wkkit", name); });
+			inv.setItem(i, item);
+		}
+		if (pages > 1) {
+			if (page > 1) inv.setItem(48, pageButton(LangConfigLoader.getString("PREVIOUS_PAGE"), page - 1, null));
+			if (page < pages) inv.setItem(50, pageButton(LangConfigLoader.getString("NEXT_PAGE"), page + 1, null));
+		}
+		return inv;
+	}
+
+	private static Inventory buildDatabaseGroup(String group, List<KitRecord> kits, int page, long pages) {
+		String title = LangConfigLoader.getString("EDIT_KIT_GROUP_TITLE") + " - " + group;
+		if (pages > 1) title += " - " + WKTool.replacePlaceholder("page", String.valueOf(page), LangConfigLoader.getString("GUI_PAGETITLE"));
+		Inventory inv = Bukkit.createInventory(new EditKitGroupHolder(), 54, title);
+		List<Integer> slots = Arrays.asList(10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43);
+		ItemStack pane = new ItemEditer(menuPane(), LangConfigLoader.getString("DO_NOT_TOUCH")).getItemStack();
+		for (int i = 0; i < 54; i++) if (!slots.contains(i)) inv.setItem(i, pane);
+		inv.setItem(1, new ItemEditer(GlassPane.BLACK.getItemStack(), LangConfigLoader.getString("EDIT_BACK")).getItemStack());
+		for (int i = 0; i < kits.size() && i < slots.size(); i++) {
+			Kit kit = Kit.getKit(kits.get(i).getKitname());
+			if (kit == null) continue;
+			ItemStack item = kit.getKitItem();
+			ItemMeta meta = item.getItemMeta();
+			if (meta != null) { meta.setLore(java.util.Collections.singletonList(LangConfigLoader.getString("EDIT_CLICK_EDITKIT"))); item.setItemMeta(meta); }
+			NBT.modify(item, nbt -> { nbt.setString("wkkit", kit.getKitname()); });
+			inv.setItem(slots.get(i), item);
+		}
+		if (pages > 1) {
+			if (page > 1) inv.setItem(48, pageButton(LangConfigLoader.getString("PREVIOUS_PAGE"), page - 1, group));
+			if (page < pages) inv.setItem(50, pageButton(LangConfigLoader.getString("NEXT_PAGE"), page + 1, group));
+		}
+		return inv;
+	}
+
+	private static ItemStack menuPane() {
+		String material = WkKit.getWkKit().getConfig().getString("GUI.MenuMaterial", "Default");
+		Material parsed = Material.matchMaterial(material);
+		return "Default".equalsIgnoreCase(material) || parsed == null ? GlassPane.DEFAULT.getItemStack() : new ItemStack(parsed);
+	}
+
+	private static ItemStack pageButton(String name, int page, String group) {
+		String material = WkKit.getWkKit().getConfig().getString("GUI.TurnPageMaterial", "SLIME_BALL");
+		ItemStack item = new ItemEditer(new ItemStack(Material.matchMaterial(material) == null ? Material.SLIME_BALL : Material.matchMaterial(material)), name).getItemStack();
+		NBT.modify(item, nbt -> { nbt.setInteger("page", page); if (group != null) nbt.setString("groupname", group); });
+		return item;
+	}
+
 	/**
 	 * 获取礼包组展示界面的首页
 	 * @return
@@ -183,16 +302,10 @@ public class EditKit implements Listener {
 		      if (guinum > 1) {
 		          ItemStack item_pre = new ItemStack(Material.getMaterial(WkKit.getWkKit().getConfig().getString("GUI.TurnPageMaterial")));
 		          item_pre = new ItemEditer(item_pre, LangConfigLoader.getString("PREVIOUS_PAGE")).getItemStack();
-		          ReadWriteNBT nbti = WKTool.getItemNBT(item_pre);
-		          nbti.setInteger("page", Integer.valueOf(i));
-		          nbti.setString("groupname", groupname);
-		          item_pre = NBT.itemStackFromNBT(nbti);
-		          ItemStack item_next = new ItemStack(Material.getMaterial(WkKit.getWkKit().getConfig().getString("GUI.TurnPageMaterial")));
-		          item_next = new ItemEditer(item_next, LangConfigLoader.getString("NEXT_PAGE")).getItemStack();
-		          nbti = WKTool.getItemNBT(item_next);
-		          nbti.setInteger("page", Integer.valueOf(i));
-		          nbti.setString("groupname", groupname);
-		          item_next = NBT.itemStackFromNBT(nbti);
+                  final int currentPage = i;
+                  NBT.modify(item_pre, nbt -> { nbt.setInteger("page", currentPage - 1); nbt.setString("groupname", groupname); });
+                  ItemStack item_next = new ItemEditer(new ItemStack(Material.getMaterial(WkKit.getWkKit().getConfig().getString("GUI.TurnPageMaterial"))), LangConfigLoader.getString("NEXT_PAGE")).getItemStack();
+                  NBT.modify(item_next, nbt -> { nbt.setInteger("page", currentPage + 1); nbt.setString("groupname", groupname); });
 		          if (i == 1) {
 		            inv.setItem(50, item_next);
 		          } else if (i == guinum) {
@@ -222,12 +335,12 @@ public class EditKit implements Listener {
 	 */
 	public Inventory editKit(String kitname) {
 		Kit kit = Kit.getKit(kitname);
-		Inventory kitinv = Bukkit.createInventory(new EditKitHolder(), 4*9, LangConfigLoader.getString("EDIT_KIT_TITLE") + " - " + kitname);
-		List<Integer> slot = Arrays.asList(0,2,3,5,6,8,13,22,31);
-		List<Integer> hasflags = Arrays.asList(9,10,11,12,18,19,20,21,27,28,29,30);
-		List<Integer> nonflags = Arrays.asList(14,15,16,17,23,24,25,26,32,33,34,35);
+		Inventory kitinv = Bukkit.createInventory(new EditKitHolder(), 5*9, LangConfigLoader.getString("EDIT_KIT_TITLE") + " - " + kitname);
+		List<Integer> slot = Arrays.asList(0,2,3,5,6,8,13,22,31,40);
+		List<Integer> hasflags = Arrays.asList(14,15,16,17,23,24,25,26,32,33,34,35,41,42,43,44);
+		List<Integer> nonflags = Arrays.asList(9,10,11,12,18,19,20,21,27,28,29,30,36,37,38,39);
 		// 填充物品
-		for(int i = 0; i < 36; i++) {
+		for(int i = 0; i < 45; i++) {
 			if(slot.contains(i)) {
 				ItemStack is = GlassPane.DEFAULT.getItemStack();
 				ItemMeta im = is.getItemMeta();
@@ -268,11 +381,14 @@ public class EditKit implements Listener {
 		// 添加flag
 		int hascount = 0;
 		int noncount = 0;
-		for(String key : kit.getFlags().keySet()) {
-			if(kit.getFlags().get(key) != null) {
+		Map<String, Object> flags = kit.getFlags();
+		for(Map.Entry<String, Object> flag : flags.entrySet()) {
+			String key = flag.getKey();
+			Object obj = flag.getValue();
+			if(obj != null) {
+				if (hascount >= hasflags.size()) continue;
 				ItemStack is = new ItemStack(Material.NAME_TAG); // 可能会报错
 				ItemMeta im = is.getItemMeta();
-				Object obj = kit.getFlags().get(key);
 				im.setDisplayName("§e§l[√]§f§l " + key);
 				if(obj instanceof String)im.setLore(Arrays.asList((String)obj));
 				if(obj instanceof Integer) im.setLore(Arrays.asList(String.valueOf((int)obj)));
@@ -286,15 +402,15 @@ public class EditKit implements Listener {
 				kitinv.setItem(hasflags.get(hascount),is);
 				hascount++;
 			}else {
+				if (noncount >= nonflags.size()) continue;
 				ItemStack is = new ItemStack(Material.NAME_TAG); // 可能会报错
 				ItemMeta im = is.getItemMeta();
 				im.setDisplayName("§e§l[§a§l+§e§l]§f§l " + key);
 				is.setItemMeta(im);
-				is.setItemMeta(im);
 				NBT.modify(is, nbt -> {
-					nbt.setString("wkkit", kitname);
+					nbt.setString("wkkit", key);
 				});
-				kitinv.setItem(hasflags.get(hascount),is);
+				kitinv.setItem(nonflags.get(noncount),is);
 				noncount++;
 			}
 			
@@ -340,6 +456,16 @@ public class EditKit implements Listener {
 		if(e.getInventory().getHolder() instanceof EditKitMainHolder) {
 			e.setCancelled(true);
 			if(e.getAction().equals(NOTHING) || e.getAction().equals(UNKNOWN)) return;
+			if (e.getCurrentItem() == null) return;
+			if (ConfigManager.getKitconfig().isDatabaseMode()) {
+				if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
+					Integer targetPage = NBT.get(e.getCurrentItem(), (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, Integer>) nbt -> nbt.getInteger("page"));
+					if (targetPage != null && targetPage > 0) openDatabaseMain((Player) e.getWhoClicked(), targetPage);
+					return;
+				}
+				if (ItemEditer.hasWkKitTag(e.getCurrentItem())) openDatabaseGroup((Player) e.getWhoClicked(), ItemEditer.getWkKitTagValue(e.getCurrentItem()), 1);
+				return;
+			}
 			if (ItemEditer.hasWkKitTag(e.getCurrentItem())) {
 				String groupname = e.getCurrentItem().getItemMeta().getDisplayName();
 				e.getWhoClicked().openInventory(this.editGroup(groupname,1));
@@ -351,6 +477,21 @@ public class EditKit implements Listener {
 		if(e.getInventory().getHolder() instanceof EditKitGroupHolder) {
 		      e.setCancelled(true);
 		      if (e.getAction().equals(NOTHING) || e.getAction().equals(UNKNOWN))return; 
+		      if (e.getCurrentItem() == null) return;
+		      if (ConfigManager.getKitconfig().isDatabaseMode()) {
+			      if (e.getRawSlot() == 1) { openDatabaseMain((Player) e.getWhoClicked(), 1); return; }
+			      if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
+				      Integer targetPage = NBT.get(e.getCurrentItem(), (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, Integer>) nbt -> nbt.getInteger("page"));
+				      String targetGroup = NBT.get(e.getCurrentItem(), (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, String>) nbt -> nbt.getString("groupname"));
+				      if (targetPage != null && targetPage > 0 && targetGroup != null && !targetGroup.isEmpty()) openDatabaseGroup((Player) e.getWhoClicked(), targetGroup, targetPage);
+				      return;
+			      }
+			      if (ItemEditer.hasWkKitTag(e.getCurrentItem())) {
+				      String kitname = ItemEditer.getWkKitTagValue(e.getCurrentItem());
+				      if (kitname != null) e.getWhoClicked().openInventory(editKit(kitname));
+			      }
+			      return;
+		      }
 		      // 如果存在数据值wkkit
 		      if (ItemEditer.hasWkKitTag(e.getCurrentItem())) {
 		        String kitname = ItemEditer.getWkKitTagValue(e.getCurrentItem());
@@ -364,22 +505,14 @@ public class EditKit implements Listener {
 		    	  return;
 		      }
 		      // 如果是按钮
-		      if (e.getRawSlot() == 48 && ItemEditer.hasWkKitTag(e.getCurrentItem())) {
-		        String kitname = ItemEditer.getWkKitTagValue(e.getCurrentItem());
-		        if (kitname != null) {
-		            Inventory inv = editGroup(kitname, Integer.valueOf(ItemEditer.getWkKitTagValue(e.getCurrentItem())).intValue() - 1);
-		        	e.getWhoClicked().openInventory(inv);
-		        }
-		        return;
-		      } 
-		      if (e.getRawSlot() == 50 && ItemEditer.hasWkKitTag(e.getCurrentItem())) {
-		        String kitname = ItemEditer.getWkKitTagValue(e.getCurrentItem());
-		        if (kitname != null) {
-		            Inventory inv = editGroup(kitname, Integer.valueOf(ItemEditer.getWkKitTagValue(e.getCurrentItem())).intValue() + 1);
-		        e.getWhoClicked().openInventory(inv);
-		        }
-		        return;
-		      } 
+              if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
+                  Integer targetPage = NBT.get(e.getCurrentItem(), (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, Integer>) nbt -> nbt.getInteger("page"));
+                  String targetGroup = NBT.get(e.getCurrentItem(), (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, String>) nbt -> nbt.getString("groupname"));
+                  if (targetPage > 0 && targetGroup != null && !targetGroup.isEmpty()) {
+                      e.getWhoClicked().openInventory(editGroup(targetGroup, targetPage));
+                  }
+                  return;
+              }
 		}
 		// 礼包编辑界面
 		if(e.getInventory().getHolder() instanceof EditKitHolder) {
@@ -423,7 +556,7 @@ public class EditKit implements Listener {
 				if (kitname != null) {
 					String key = ItemEditer.getWkKitTagValue(e.getCurrentItem());
 					if (key != null) {
-				List<Integer> hasflags = Arrays.asList(9,10,11,12,18,19,20,21,27,28,29,30);
+				List<Integer> hasflags = Arrays.asList(14,15,16,17,23,24,25,26,32,33,34,35,41,42,43,44);
 				if(hasflags.contains(e.getRawSlot())) {
 					if(key.equals("DisplayName")) {e.getWhoClicked().closeInventory();KitFlagPrompt.deFlag((Player)e.getWhoClicked(), kitname, "DisplayName");return;}
 					if(key.equals("Icon")) {e.getWhoClicked().closeInventory();KitFlagPrompt.deFlag((Player)e.getWhoClicked(), kitname, "Icon");return;}
@@ -468,6 +601,12 @@ public class EditKit implements Listener {
 			}
 
 		}
+	}
+
+	@EventHandler
+	public void invalidatePendingPageOnClose(InventoryCloseEvent event) {
+		AtomicLong requests = PAGE_REQUESTS.get(event.getPlayer().getUniqueId());
+		if (requests != null) requests.incrementAndGet();
 	}
 	
 }

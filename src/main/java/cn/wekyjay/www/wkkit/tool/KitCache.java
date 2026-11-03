@@ -32,6 +32,10 @@ public class KitCache implements Listener{
 	public static KitCache getCache() {
 		return cache == null? cache = new KitCache() : cache;
 	}
+
+	public static KitCache getInitializedCache() {
+		return cache;
+	}
 	
 	public KitCache() {
         boolean isEnable = WkKit.getWkKit().getConfig().getBoolean("Cache.Enable");

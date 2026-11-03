@@ -1,6 +1,5 @@
 package cn.wekyjay.www.wkkit.listeners;
 
-
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.api.PlayersReceiveKitEvent;
 import cn.wekyjay.www.wkkit.api.ReceiveType;
@@ -20,99 +19,98 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import java.util.Map;
 
 import static org.bukkit.event.inventory.InventoryAction.NOTHING;
 import static org.bukkit.event.inventory.InventoryAction.UNKNOWN;
 
 public class KitMailListener implements Listener {
-    static WkKit wk = WkKit.getWkKit();// 调用主类实例
-
-    Map<String, Integer> m = new HashMap<>();
-    String guiName;
-
-
-    /*玩家打开礼包邮箱事件*/
     @EventHandler
-    public void onInventory(InventoryOpenEvent e) {
-        String pagetitle = WKTool.replacePlaceholder("page", 1 + "", LangConfigLoader.getString("GUI_PAGETITLE"));
-        if (WKTool.getEventInvTitle(e).equals(LangConfigLoader.getString("KITMAIL_TITLE")) || WKTool.getEventInvTitle(e).equals(LangConfigLoader.getString("KITMAIL_TITLE") + " - " + pagetitle)) {
-            guiName = LangConfigLoader.getString("KITMAIL_TITLE");
-            m.put(e.getPlayer().getName(), 1);
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        String firstPageTitle = WKTool.replacePlaceholder("page", "1", LangConfigLoader.getString("GUI_PAGETITLE"));
+        String title = WKTool.getEventInvTitle(event);
+        if (title.equals(LangConfigLoader.getString("KITMAIL_TITLE"))
+                || title.equals(LangConfigLoader.getString("KITMAIL_TITLE") + " - " + firstPageTitle)) {
         }
     }
 
-    /*玩家礼包邮箱领取礼包事件*/
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onInventory(InventoryClickEvent e) {
-        if (e.getInventory().getHolder() != null && e.getInventory().getHolder() instanceof MailHolder && e.getWhoClicked() == WKTool.getEventInvPlayer(e)) {
-            e.setCancelled(true);
-            if (e.getAction().equals(NOTHING) || e.getAction().equals(UNKNOWN)) {
-                return;
-            }
-            String name = e.getWhoClicked().getName();
-            Player p = (Player) e.getWhoClicked();
-            Bukkit.getLogger().info("测试");
-            // 判断是否能领取
-            if (e.getRawSlot() >= 8 & e.getRawSlot() <= 44 && ItemEditer.hasWkKitTag(e.getCurrentItem()) && WKTool.hasSpace(p, 1)) {
-                p.getInventory().addItem(e.getCurrentItem());
-                String kitName = ItemEditer.getWkKitTagValue(e.getCurrentItem());
-                PlayersReceiveKitEvent event = new PlayersReceiveKitEvent(p, Kit.getKit(kitName), ReceiveType.MAIL);
-                Bukkit.getPluginManager().callEvent(event);
-                Bukkit.getLogger().info("测试1");
-                if (event.isCancelled()) return;
-                WkKit.getPlayerData().delMailToFile(name, kitName);
-                p.closeInventory();
-                (new KitMail()).openKitMail(p, 1);
-                Bukkit.getLogger().info("测试2");
-                return;
-            }
-            List<String> set = WkKit.getPlayerData().getMailKits(name);
-            Bukkit.getLogger().info("测试3");
-            // 如果大于一页则需要手动领取
-            if (e.getInventory().firstEmpty() == -1 && e.getRawSlot() < 45 && e.getRawSlot() > 8 ){
-                p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_FAILED", ChatColor.YELLOW));
-                return;
-            }
-            if (set != null && !set.isEmpty()) {
-                if (e.getRawSlot() == 52) {
-                    if (!WKTool.hasSpace(p, (int) Arrays.stream(e.getInventory().getContents()).filter(Objects::nonNull).count() - 18)) {
-                        p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_FAILED", ChatColor.YELLOW));
-                        return;
-                    }
-                    for (ItemStack is : e.getInventory().getContents()) {
-                        if (is != null && ItemEditer.hasWkKitTag(is)) {
-                            String kitName = ItemEditer.getWkKitTagValue(is);
-                            // 回调事件
-                            PlayersReceiveKitEvent event = new PlayersReceiveKitEvent(p, Kit.getKit(kitName), ReceiveType.MAIL);
-                            Bukkit.getPluginManager().callEvent(event);
-                            // 如果没有取消
-                            if (!event.isCancelled()) {
-                                p.getInventory().addItem(is);
-                                WkKit.getPlayerData().delMailToFile(name, kitName);
-                            }
-                        }
-                    }
-                    p.closeInventory();
-                    (new KitMail()).openKitMail(p, 1);
-                    return;
-                }
-                /**
-                 * 翻页逻辑
-                 */
-                if (e.getRawSlot() == 50 || e.getRawSlot() == 48) {
-                    int page = 1;
-                    if (e.getCurrentItem().getItemMeta().getDisplayName().equals(LangConfigLoader.getString("NEXT_PAGE"))) {
-                        page = ((MailHolder) e.getInventory().getHolder()).getPage() + 1;
-                    } else if (e.getCurrentItem().getItemMeta().getDisplayName().equals(LangConfigLoader.getString("PREVIOUS_PAGE"))) {
-                        page = ((MailHolder) e.getInventory().getHolder()).getPage() - 1;
-                    } else {
-                        return;
-                    }
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof MailHolder)
+                || event.getWhoClicked() != WKTool.getEventInvPlayer(event)) {
+            return;
+        }
 
-                    new KitMail().openKitMail((Player) e.getWhoClicked(), page);
+        event.setCancelled(true);
+        if (event.getAction() == NOTHING || event.getAction() == UNKNOWN) return;
+
+        Player player = (Player) event.getWhoClicked();
+        String playerName = player.getName();
+        ItemStack clicked = event.getCurrentItem();
+
+        if (event.getRawSlot() > 8 && event.getRawSlot() < 45
+                && clicked != null && ItemEditer.hasWkKitTag(clicked)) {
+            String kitName = ItemEditer.getWkKitTagValue(clicked);
+            boolean fullyClaimed = claimMailStack(player, playerName, kitName, clicked);
+            if (!fullyClaimed) sendInventorySpaceMessage(player);
+            refreshMailbox(player);
+            return;
+        }
+
+        if (event.getRawSlot() == 52) {
+            boolean fullyClaimed = true;
+            for (ItemStack item : event.getInventory().getContents()) {
+                if (item != null && ItemEditer.hasWkKitTag(item)) {
+                    String kitName = ItemEditer.getWkKitTagValue(item);
+                    if (!claimMailStack(player, playerName, kitName, item)) fullyClaimed = false;
                 }
+            }
+            if (!fullyClaimed) sendInventorySpaceMessage(player);
+            refreshMailbox(player);
+            return;
+        }
+
+        if ((event.getRawSlot() == 48 || event.getRawSlot() == 50) && clicked != null && clicked.hasItemMeta()) {
+            String displayName = clicked.getItemMeta().getDisplayName();
+            int page = ((MailHolder) event.getInventory().getHolder()).getPage();
+            if (displayName.equals(LangConfigLoader.getString("NEXT_PAGE"))) page++;
+            else if (displayName.equals(LangConfigLoader.getString("PREVIOUS_PAGE"))) page--;
+            else return;
+            new KitMail().openKitMail(player, Math.max(1, page));
+        }
+    }
+
+    /** Deliver one displayed stack and subtract only the amount accepted by the inventory. */
+    private boolean claimMailStack(Player player, String playerName, String kitName, ItemStack mailStack) {
+        Kit kit = Kit.getKit(kitName);
+        if (kit == null) return false;
+
+        PlayersReceiveKitEvent receiveEvent = new PlayersReceiveKitEvent(player, kit, ReceiveType.MAIL);
+        Bukkit.getPluginManager().callEvent(receiveEvent);
+        if (receiveEvent.isCancelled()) return false;
+
+        int requested = mailStack.getAmount();
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(mailStack.clone());
+        int notAdded = leftovers.values().stream().mapToInt(ItemStack::getAmount).sum();
+        int delivered = requested - notAdded;
+        if (delivered > 0) {
+            Integer mailCount = WkKit.getPlayerData().getMailKitNum(playerName, kitName);
+            int remaining = Math.max(0, (mailCount == null ? 0 : mailCount) - delivered);
+            if (remaining == 0) {
+                WkKit.getPlayerData().delMailToFile(playerName, kitName);
+            } else {
+                WkKit.getPlayerData().setMailNum(playerName, kitName, remaining);
             }
         }
+        return notAdded == 0;
+    }
+
+    private void refreshMailbox(Player player) {
+        player.closeInventory();
+        new KitMail().openKitMail(player, 1);
+    }
+
+    private void sendInventorySpaceMessage(Player player) {
+        player.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_FAILED", ChatColor.YELLOW));
     }
 }

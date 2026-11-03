@@ -17,9 +17,7 @@ public class ItemEditer {
 	}
 	public ItemEditer(ItemStack itemStack,String displayName){
 		this.itemStack = itemStack.clone();
-		ItemMeta im = itemStack.getItemMeta();
-		im.setDisplayName(ChatColor.translateAlternateColorCodes('&', displayName));
-		itemStack.setItemMeta(im);
+		setDisplayName(displayName);
 	}
 	
 	/**
@@ -51,22 +49,16 @@ public class ItemEditer {
 	}
 	
 	public ItemEditer setNBTString(String key, String value) {
-		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
-		nbt.setString(key, value);
-		itemStack = NBT.itemStackFromNBT(nbt);
+		NBT.modify(itemStack, nbt -> { nbt.setString(key, value); });
 		return this;
 	}
 	public ItemEditer setNBTInteger(String key, Integer value) {
-		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
-		nbt.setInteger(key, value);
-		itemStack = NBT.itemStackFromNBT(nbt);
+		NBT.modify(itemStack, nbt -> { nbt.setInteger(key, value); });
 		return this;
 	}
 	
 	public ItemEditer removeNBT(String key) {
-		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
-		nbt.removeKey(key);
-		itemStack = NBT.itemStackFromNBT(nbt);
+		NBT.modify(itemStack, nbt -> { nbt.removeKey(key); });
 		return this;
 	}
 	
@@ -88,47 +80,12 @@ public class ItemEditer {
 	 * 判断物品是否有wkkit标签，自动适配不同版本
 	 */
 	public static boolean hasWkKitTag(ItemStack item) {
-		String fullVersion = WKTool.getFullVersion();
-		ReadWriteNBT nbt = WKTool.getItemNBT(item);
-		if (WKTool.compareVersion(fullVersion, "1.20.5") >= 0) {
-			// 1.20.5及以上，查components.minecraft:custom_data
-			ReadWriteNBT components = nbt.getCompound("components");
-			if (components != null) {
-				ReadWriteNBT customData = components.getCompound("minecraft:custom_data");
-				return customData != null && customData.hasTag("wkkit");
-			}
-			return false;
-		} else {
-			// 低于1.20.5，直接查根节点
-			ReadWriteNBT tag = nbt.getCompound("tag");
-			return tag != null && tag.hasTag("wkkit");
-		}
-	}
+        return item != null && item.getType() != org.bukkit.Material.AIR
+                && NBT.get(item, (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, Boolean>) nbt -> nbt.hasTag("wkkit"));
+    }
 
-	/**
-	 * 获取物品wkkit标签的值，自动适配不同版本
-	 */
-	public static String getWkKitTagValue(ItemStack item) {
-		String fullVersion = WKTool.getFullVersion();
-		ReadWriteNBT nbt = WKTool.getItemNBT(item);
-		if (WKTool.compareVersion(fullVersion, "1.20.5") >= 0) {
-			// 1.20.5及以上
-			ReadWriteNBT components = nbt.getCompound("components");
-			if (components != null) {
-				ReadWriteNBT customData = components.getCompound("minecraft:custom_data");
-				if (customData != null && customData.hasTag("wkkit")) {
-					return customData.getString("wkkit");
-				}
-			}
-			return null;
-		} else {
-			// 低于1.20.5
-			ReadWriteNBT tag = nbt.getCompound("tag");
-			if (tag != null && tag.hasTag("wkkit")) {
-				return tag.getString("wkkit");
-			}
-			return null;
-		}
-	}
-
+    public static String getWkKitTagValue(ItemStack item) {
+        if (!hasWkKitTag(item)) return null;
+        return NBT.get(item, (java.util.function.Function<de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT, String>) nbt -> nbt.getString("wkkit"));
+    }
 }

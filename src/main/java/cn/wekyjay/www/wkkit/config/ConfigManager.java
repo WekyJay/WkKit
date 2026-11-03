@@ -1,7 +1,6 @@
 package cn.wekyjay.www.wkkit.config;
 
 import cn.wekyjay.www.wkkit.WkKit;
-import cn.wekyjay.www.wkkit.data.playerdata.PlayerData_MySQL;
 import cn.wekyjay.www.wkkit.kit.KitGroupManager;
 import cn.wekyjay.www.wkkit.menu.MenuManager;
 import cn.wekyjay.www.wkkit.mysql.MySQLManager;
@@ -32,9 +31,10 @@ public class ConfigManager {
 	}
 	
 	public static void reloadPlugin() {
-		if(WkKit.getPlayerData() instanceof PlayerData_MySQL) MySQLManager.get().shutdown();
-		WkKit.getWkKit().reloadConfig(); // 重载配置
-		if(WkKit.getWkKit().getConfig().getBoolean("MySQL.Enable") == true) MySQLManager.get().enableMySQL();
+		WkKit.getWkKit().reloadConfig();
+		boolean mysqlEnabled = WkKit.getWkKit().getConfig().getBoolean("MySQL.Enable");
+		if (MySQLManager.get().isReady()) MySQLManager.get().shutdown();
+		if (mysqlEnabled) MySQLManager.get().enableMySQL();
 		WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
 		WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
 		LangConfigLoader.reloadConfig();

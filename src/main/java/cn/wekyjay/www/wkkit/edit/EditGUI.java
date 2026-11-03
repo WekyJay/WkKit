@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -80,7 +81,11 @@ public class EditGUI implements Listener{
 		        return;
 			}
 			if(e.getRawSlot() == 13) {
-				e.getWhoClicked().openInventory(new EditKit().getInventory());
+				if (cn.wekyjay.www.wkkit.config.ConfigManager.getKitconfig().isDatabaseMode()) {
+					EditKit.openDatabaseMain((Player) e.getWhoClicked(), 1);
+				} else {
+					e.getWhoClicked().openInventory(new EditKit().getInventory());
+				}
 				return;
 			}
 		}

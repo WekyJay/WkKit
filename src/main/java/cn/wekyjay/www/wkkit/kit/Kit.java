@@ -172,10 +172,7 @@ public class Kit {
 		String groupname = KitGroupManager.getContainName(this);
 		if (groupname == null) return;
 		try {
-			FileConfiguration groupConfig = KitGroupManager.getGroup(groupname);
-			if (groupConfig != null) {
-				groupConfig.save(ConfigManager.getKitconfig().getContainsFile(this.kitname));
-			}
+			ConfigManager.getKitconfig().save(groupname + ".yml");
 		} catch (IOException e) {
 			ExceptionHandler.handle("保存礼包配置出错", e);
 		}
@@ -314,20 +311,20 @@ public class Kit {
 	}
 	
 	public Map<String,Object> getFlags() {
-		Map<String,Object> kitflags = new HashMap<>();
+		Map<String,Object> kitflags = new LinkedHashMap<>();
 		kitflags.put("DisplayName", displayName);
 		kitflags.put("Icon", icon);
-		kitflags.put("Times", times);
-		kitflags.put("Delay", delay);
+		kitflags.put("Times", times != null && times >= 0 ? times : null);
+		kitflags.put("Delay", delay != null && delay > 0 ? delay : null);
 		kitflags.put("Permission", permission);
 		kitflags.put("DoCron", docron);
-		kitflags.put("Commands", commands);
-		kitflags.put("Lore", lore);
-		kitflags.put("Drop", drop);
-		kitflags.put("Item", itemStack);
+		kitflags.put("Commands", commands != null && !commands.isEmpty() ? commands : null);
+		kitflags.put("Lore", lore != null && !lore.isEmpty() ? lore : null);
+		kitflags.put("Drop", drop != null && !drop.isEmpty() ? drop : null);
+		kitflags.put("Item", itemStack != null && itemStack.length > 0 ? itemStack : null);
 		kitflags.put("Vault", vault);
-		kitflags.put("NoRefreshFirst", noRefreshFirst);
-		kitflags.put("MythicMobs", mythicMobs);
+		kitflags.put("NoRefreshFirst", noRefreshFirst ? Boolean.TRUE : null);
+		kitflags.put("MythicMobs", mythicMobs != null && !mythicMobs.isEmpty() ? mythicMobs : null);
 		return kitflags;
 	}
 
@@ -351,7 +348,7 @@ public class Kit {
 				 * @20230819 修复CUSTOMDATA图标效问题
 				 */
 				ItemMeta im = item.getItemMeta();
-                im.setCustomModelData(Integer.parseInt(str[1]));
+                if (WKTool.getVersion() >= 14) im.setCustomModelData(Integer.parseInt(str[1]));
 				item.setItemMeta(im);
 
 			}
