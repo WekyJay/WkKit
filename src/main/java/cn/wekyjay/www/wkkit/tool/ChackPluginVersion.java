@@ -227,7 +227,7 @@ public class ChackPluginVersion {
         }
     }
 
-    private String findJarDownloadUrl(List<Map<String, String>> assets) {
+    private static String findJarDownloadUrl(List<Map<String, String>> assets) {
         if (assets == null) {
             return null;
         }
