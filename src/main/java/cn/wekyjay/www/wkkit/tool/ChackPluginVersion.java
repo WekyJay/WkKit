@@ -1,176 +1,253 @@
 package cn.wekyjay.www.wkkit.tool;
 
 import cn.wekyjay.www.wkkit.WkKit;
-import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
-import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import cn.wekyjay.www.wkkit.listeners.ChackPluginListener;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
 import com.alibaba.druid.support.json.JSONParser;
 import org.bukkit.Bukkit;
-import java.io.*;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+public class ChackPluginVersion {
 
-public class ChackPluginVersion{
+    private static final String GITHUB_API_URL = "https://api.github.com/repos/WekyJay/WkKit/releases/latest";
+    private static final String PROJECT_URL = "https://github.com/WekyJay/WkKit";
+    private static final WkKit wkkit = WkKit.getWkKit();
 
-	private static final WkKit wkkit = WkKit.getWkKit();
+    private static Map<String, Object> resourceInfo;
+    private static boolean needUpdate;
 
-	private static Map<String, Object> resourceInfo = null;
+    public static void setNeedUpdate(boolean value) {
+        needUpdate = value;
+    }
 
-	private static boolean needUpdate = false;
-	public static void setNeedUpdate(boolean value) { needUpdate = value; }
-	public static boolean isNeedUpdate() { return needUpdate; }
+    public static boolean isNeedUpdate() {
+        return needUpdate;
+    }
 
-	public static Map<String, Object> getResourceInfo() {
-		return resourceInfo;
-	}
+    public static Map<String, Object> getResourceInfo() {
+        return resourceInfo;
+    }
 
-	/**
-	 * Modify of 1.2.5
-	 * 1.2.5之后修改为Spigot Resource API
-	 */
-	public ChackPluginVersion(){
-		MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_IN"));
-
-		ChackPluginVersion.resourceInfo = this.getResourceInfo("versions/latest");
-
-		if (ChackPluginVersion.resourceInfo != null) {
-			runCheck();
-		}
-
-	}
-
-
-
-
-	public Map<String,Object> getResourceInfo(String path){
-		HttpURLConnection con = null;
-		BufferedReader buffer = null;
-		InputStream inputStream = null;
-
-
-		//得到连接对象
-		try {
-			URL url = new URL("https://api.spiget.org/v2/resources/98415/" + path);
-			con = (HttpURLConnection) url.openConnection();
-			con.setRequestMethod("GET");
-			//设置连接超时时间
-			con.setConnectTimeout(10000);
-			//设置读取超时时间
-			con.setReadTimeout(10000);
-			//添加请求头
-			con.setRequestProperty("Connection","keep-alive");
-			//获取服务器返回的输入流
-			inputStream = con.getInputStream();
-
-			//得到响应码
-			int responseCode = con.getResponseCode();
-			// 如果响应码成功了则存储响应数据
-			if (responseCode == HttpURLConnection.HTTP_OK){
-				//读取输入流s
-				buffer = new BufferedReader(new InputStreamReader(inputStream));
-				StringBuilder respose = new StringBuilder();
-				String line;
-				while((line = buffer.readLine())!=null){
-					respose.append(line);
-				}
-				// 响应成功则注册玩家登陆检查更新事件
-				Bukkit.getPluginManager().registerEvents(new ChackPluginListener(),wkkit);
-				return new JSONParser(respose.toString()).parseMap();
-			}
-
-
-		} catch (IOException e) {
-			MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_FAILED"));
-			return null;
-		}finally {
-			if (inputStream != null){
-				try {
-					inputStream.close();
-				} catch (IOException ignored) {}
-			}
-			if (buffer != null){
-				try {
-					buffer.close();
-				} catch (IOException ignored) {}
-			}
-		}
-		MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_FAILED"));
-		return null;
-	}
-
-	public void runCheck() {
-        if(resourceInfo == null) {return;}
-        String lver = resourceInfo.get("name").toString();
-        String curVer = WkKit.getWkKit().getDescription().getVersion();
-        if(WKTool.compareVersion(curVer, lver) < 0) {
-            setNeedUpdate(true);
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LINK") + "https://www.spigotmc.org/resources/wkkit.98415/");
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LATESTVERSION") + lver + " "
-                    + LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CURRENTVERSION") + curVer
-            );
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CONFIRM"));
-        }else {
-            setNeedUpdate(false);
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_ED"));
+    public ChackPluginVersion() {
+        MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_IN"));
+        resourceInfo = getLatestRelease();
+        if (resourceInfo != null) {
+            registerJoinListener();
+            runCheck();
         }
-	}
+    }
 
-    /**
-     * 自动下载并替换插件jar
-     */
-    public void autoUpdatePlugin() {
-        String downloadUrl = "https://api.spiget.org/v2/resources/98415/download";
-        // 目标路径：plugins/WkKit-新版本号.jar
-        String pluginsDir = wkkit.getDataFolder().getParentFile().getAbsolutePath();
-        String newJarName = "WkKit-" + resourceInfo.get("name") + ".jar";
-        File targetFile = new File(pluginsDir +"/"+ newJarName);
-        MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_START"));
-        try {
-            File currentJar = new File(wkkit.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
-			// 获取文件真实名称
-			String currentJarName = currentJar.getName();
-			// 获取真文件路径
-			String currentJarPath = pluginsDir + "/" +currentJarName;
-			File currentJarFile = new File(currentJarPath);
-			// 删除当前jar
-			if (currentJarFile.exists()) {
-				if (currentJarFile.delete()) {
-					MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_DELETE_OLD_SUCCESS") + currentJarFile.getName());
-				} else {
-					MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_DELETE_OLD_FAIL") + currentJarFile.getName());
-				}
-			}
+    private void registerJoinListener() {
+        Bukkit.getScheduler().runTask(wkkit, () ->
+                Bukkit.getPluginManager().registerEvents(new ChackPluginListener(), wkkit));
+    }
 
-        } catch (Exception e) {
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_DELETE_OLD_ERROR") + e.getMessage());
-        }
-        int byteread = 0;
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getLatestRelease() {
+        HttpURLConnection connection = null;
         try {
-            URL url = new URL(downloadUrl);
-            URLConnection conn = url.openConnection();
-            InputStream inStream = conn.getInputStream();
-            FileOutputStream fs = new FileOutputStream(targetFile);
-            byte[] buffer = new byte[1204];
-            while ((byteread = inStream.read(buffer)) != -1) {
-                fs.write(buffer, 0, byteread);
+            connection = (HttpURLConnection) new URL(GITHUB_API_URL).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(15000);
+            connection.setRequestProperty("Accept", "application/vnd.github+json");
+            connection.setRequestProperty("User-Agent", "WkKit-UpdateChecker");
+
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new IOException("GitHub API returned HTTP " + connection.getResponseCode());
             }
-            fs.close();
-            inStream.close();
+
+            StringBuilder response = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+            }
+
+            Map<String, Object> release = new JSONParser(response.toString()).parseMap();
+            String version = normalizeVersion(release.get("name"));
+            if (version == null) {
+                version = normalizeVersion(release.get("tag_name"));
+            }
+            Map<String, Object> info = new HashMap<String, Object>();
+
+            Object assetsValue = release.get("assets");
+            List<Map<String, String>> assets = new ArrayList<Map<String, String>>();
+            if (assetsValue instanceof List) {
+                for (Object value : (List<?>) assetsValue) {
+                    if (value instanceof Map) {
+                        Map<String, Object> asset = (Map<String, Object>) value;
+                        Object name = asset.get("name");
+                        Object downloadUrl = asset.get("browser_download_url");
+                        if (name != null && downloadUrl != null) {
+                            Map<String, String> parsedAsset = new HashMap<String, String>();
+                            parsedAsset.put("name", name.toString());
+                            parsedAsset.put("downloadUrl", downloadUrl.toString());
+                            assets.add(parsedAsset);
+                        }
+                    }
+                }
+            }
+            if (version == null) {
+                for (Map<String, String> asset : assets) {
+                    String assetName = asset.get("name");
+                    if (assetName != null && assetName.matches("(?i)WkKit-[0-9]+(?:\\.[0-9]+)*\\.jar")) {
+                        version = assetName.substring("WkKit-".length(), assetName.length() - ".jar".length());
+                        break;
+                    }
+                }
+            }
+            if (version == null) {
+                throw new IOException("Latest GitHub release has no semantic version in its name, tag, or jar asset");
+            }
+            info.put("name", version);
+            info.put("assets", assets);
+            return info;
+        } catch (Exception e) {
+            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_FAILED"));
+            ExceptionHandler.handle("GitHub Releases update check", e);
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private String normalizeVersion(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String candidate = value.toString().trim().replaceFirst("^[vV]", "");
+        return candidate.matches("[0-9]+(?:\\.[0-9]+)*") ? candidate : null;
+    }
+
+    public void runCheck() {
+        if (resourceInfo == null) {
+            return;
+        }
+        String latestVersion = resourceInfo.get("name").toString();
+        String currentVersion = wkkit.getDescription().getVersion();
+        try {
+            if (WKTool.compareVersion(currentVersion, latestVersion) < 0) {
+                setNeedUpdate(true);
+                MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LINK") + PROJECT_URL);
+                MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LATESTVERSION") + latestVersion + " "
+                        + LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CURRENTVERSION") + currentVersion);
+                MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CONFIRM"));
+            } else {
+                setNeedUpdate(false);
+                MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_ED"));
+            }
+        } catch (NumberFormatException e) {
+            setNeedUpdate(false);
+            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_FAILED"));
+            ExceptionHandler.handle("Invalid GitHub release version: " + latestVersion, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static boolean autoUpdatePlugin() {
+        MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_START"));
+        File tempFile = null;
+        try {
+            if (resourceInfo == null) {
+                throw new IOException("GitHub release information is unavailable");
+            }
+            String latestVersion = resourceInfo.get("name").toString();
+            String downloadUrl = findJarDownloadUrl((List<Map<String, String>>) resourceInfo.get("assets"));
+            if (downloadUrl == null) {
+                throw new IOException("The latest GitHub release does not contain a WkKit jar asset");
+            }
+
+            File pluginsDir = wkkit.getDataFolder().getParentFile();
+            if (pluginsDir == null || (!pluginsDir.exists() && !pluginsDir.mkdirs())) {
+                throw new IOException("Could not access the plugins directory");
+            }
+            String safeVersion = latestVersion.replaceAll("[^A-Za-z0-9._-]", "_");
+            File targetFile = new File(pluginsDir, "WkKit-" + safeVersion + ".jar");
+            tempFile = File.createTempFile("WkKit-update-", ".jar.part", pluginsDir);
+
+            HttpURLConnection connection = (HttpURLConnection) new URL(downloadUrl).openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(30000);
+            connection.setRequestProperty("User-Agent", "WkKit-UpdateChecker");
+            try {
+                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("GitHub asset download returned HTTP " + connection.getResponseCode());
+                }
+                try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, bytesRead);
+                    }
+                }
+            } finally {
+                connection.disconnect();
+            }
+
+            if (tempFile.length() == 0) {
+                throw new IOException("Downloaded GitHub asset is empty");
+            }
+            try (java.util.jar.JarFile ignored = new java.util.jar.JarFile(tempFile)) {
+                // Confirm the downloaded asset is a readable jar before installing it.
+            }
+
+            Files.move(tempFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            tempFile = null;
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_DOWNLOAD_SUCCESS") + targetFile.getAbsolutePath());
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_RESTART_TIP"));
-
-        } catch (FileNotFoundException e) {
-            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_PATH_NOTFOUND"));
-            ExceptionHandler.handle("未知操作", e);
-        } catch (IOException e) {
+            return true;
+        } catch (Exception e) {
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_UPDATE_IO_ERROR"));
-            ExceptionHandler.handle("未知操作", e);
+            MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LINK") + PROJECT_URL);
+            ExceptionHandler.handle("GitHub Releases plugin download", e);
+            return false;
+        } finally {
+            if (tempFile != null && tempFile.exists() && !tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
         }
+    }
+
+    private String findJarDownloadUrl(List<Map<String, String>> assets) {
+        if (assets == null) {
+            return null;
+        }
+        String fallbackUrl = null;
+        for (Map<String, String> asset : assets) {
+            String name = asset.get("name");
+            String url = asset.get("downloadUrl");
+            if (name == null || url == null || !name.toLowerCase().endsWith(".jar")) {
+                continue;
+            }
+            if (name.equalsIgnoreCase("WkKit-" + resourceInfo.get("name") + ".jar")) {
+                return url;
+            }
+            if (name.toLowerCase().startsWith("wkkit-")) {
+                fallbackUrl = url;
+            } else if (fallbackUrl == null) {
+                fallbackUrl = url;
+            }
+        }
+        return fallbackUrl;
     }
 
     public static void doUpdate() {
@@ -178,10 +255,8 @@ public class ChackPluginVersion{
             MessageManager.sendMessageWithPrefix(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_NOTNEED"));
             return;
         }
-        new ChackPluginVersion().autoUpdatePlugin();
-        setNeedUpdate(false);
+        if (autoUpdatePlugin()) {
+            setNeedUpdate(false);
+        }
     }
-
-
-
 }

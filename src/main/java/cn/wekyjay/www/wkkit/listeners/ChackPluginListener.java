@@ -3,27 +3,33 @@ package cn.wekyjay.www.wkkit.listeners;
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.tool.ChackPluginVersion;
+import cn.wekyjay.www.wkkit.tool.WKTool;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-public class ChackPluginListener implements Listener {
-    WkKit wk = WkKit.getWkKit();
-    @EventHandler
-    public void onOpLogin(PlayerJoinEvent e) {
-        if(wk.getConfig().getBoolean("Setting.CheckUpdate")) {
-            String lver = ChackPluginVersion.getResourceInfo().get("name").toString();
-            if(e.getPlayer().isOp()) {
-                if(lver == null) {return;}
-                if(!wk.getDescription().getVersion().equals(lver)) { //判断版本是否与最新版本不同
-                    // 提示下载链接
-                    e.getPlayer().sendMessage(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LINK") + "https://www.spigotmc.org/resources/%E2%9C%A8wkkit%E2%9C%A8-will-be-your-forever-gift-plugin-1-7-10-support-1-20-4%E2%9C%85.98415/");
+import java.util.Map;
 
-                    // 提示最新版本
-                    e.getPlayer().sendMessage(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LATESTVERSION") + lver + " " + LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CURRENTVERSION") + wk.getDescription().getVersion());
-                }
-            }
+public class ChackPluginListener implements Listener {
+    private final WkKit wk = WkKit.getWkKit();
+
+    @EventHandler
+    public void onOpLogin(PlayerJoinEvent event) {
+        if (!wk.getConfig().getBoolean("Setting.CheckUpdate") || !event.getPlayer().isOp()) {
+            return;
         }
 
+        Map<String, Object> release = ChackPluginVersion.getResourceInfo();
+        if (release == null || release.get("name") == null) {
+            return;
+        }
+
+        String latestVersion = release.get("name").toString();
+        String currentVersion = wk.getDescription().getVersion();
+        if (WKTool.compareVersion(currentVersion, latestVersion) < 0) {
+            event.getPlayer().sendMessage(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LINK") + "https://github.com/WekyJay/WkKit");
+            event.getPlayer().sendMessage(LangConfigLoader.getString("PLUGIN_CHACKUPDATE_LATESTVERSION") + latestVersion + " "
+                    + LangConfigLoader.getString("PLUGIN_CHACKUPDATE_CURRENTVERSION") + currentVersion);
+        }
     }
 }
