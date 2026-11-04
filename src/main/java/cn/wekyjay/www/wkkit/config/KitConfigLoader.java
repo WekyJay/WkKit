@@ -64,7 +64,7 @@ public class KitConfigLoader{
 	}
 
 	public boolean isDatabaseMode() {
-		return WkKit.getWkKit().getConfig().getBoolean("MySQL.Enable") && MySQLManager.get().isReady();
+		return MySQLManager.isDatabaseConfigured() && MySQLManager.get().isReady();
 	}
 
 	private void loadDatabaseConfig() {

@@ -2,6 +2,7 @@ package cn.wekyjay.www.wkkit.command;
 
 import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
+import cn.wekyjay.www.wkkit.mysql.MySQLManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,7 +13,7 @@ import java.util.Set;
 
 public class KitTransfer {
 	public void onCommand(CommandSender sender, Command command, String label, String[] args) {
-		if(args.length == 2 && WkKit.getWkKit().getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
+		if(args.length == 2 && MySQLManager.get().isReady()) {
 			// YAML转MYSQL
 			if(args[0].equalsIgnoreCase("transfer") && args[1].equalsIgnoreCase("mysql")) {
 				Set<String> playerlist = WkKit.playerConfig.getKeys(false);
@@ -47,7 +48,7 @@ public class KitTransfer {
 				}
 				sender.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_TRANSFER_SUCCESS", ChatColor.GREEN));
 			}
-		}else if(!WkKit.getWkKit().getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
+		}else if(!MySQLManager.get().isReady()) {
 			sender.sendMessage(LangConfigLoader.getStringWithPrefix("MYSQL_NOENABLE", ChatColor.RED));
 		}
 	}

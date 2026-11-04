@@ -16,16 +16,21 @@ public class Druid {
 
     // 初始化连接池
     public Druid(String url,String userName, String userPassword){
+        this(url, userName, userPassword, "com.mysql.cj.jdbc.Driver", false);
+    }
+
+    public Druid(String url, String userName, String userPassword, String driverClass, boolean sqlite){
 
         druidDataSource=new DruidDataSource();
         druidDataSource.setUrl(url);
-        druidDataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        druidDataSource.setDriverClassName(driverClass);
         druidDataSource.setUsername(userName);
         druidDataSource.setPassword(userPassword);
         //可选设置
-        druidDataSource.setMaxActive(20);
-        druidDataSource.setInitialSize(10);
+        druidDataSource.setMaxActive(sqlite ? 1 : 20);
+        druidDataSource.setInitialSize(sqlite ? 1 : 10);
         druidDataSource.setMaxWait(5000);
+        druidDataSource.setValidationQuery("SELECT 1");
         druidDataSource.setTestWhileIdle(true);
 
     }

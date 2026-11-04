@@ -53,7 +53,7 @@ public class PlayerSQLData {
         catch (Exception e) { ExceptionHandler.handle("更新玩家礼包数据", e); }
     }
     public void update_Data_Data_Lock(String playername, String kitname, String value) {
-        try { MySQLManager.get().execute(s -> { PlayerMapper mapper = s.getMapper(PlayerMapper.class); PlayerRecord r = mapper.selectOne(new QueryWrapper<PlayerRecord>().eq("player", playername).eq("kitname", kitname).last("FOR UPDATE")); if (r != null && "false".equals(r.getData())) { r.setData(value); mapper.updateById(r); } return null; }); }
+        try { MySQLManager.get().execute(s -> { PlayerMapper mapper = s.getMapper(PlayerMapper.class); PlayerRecord r = mapper.selectOne(new QueryWrapper<PlayerRecord>().eq("player", playername).eq("kitname", kitname).last(MySQLManager.get().isSQLite() ? "" : "FOR UPDATE")); if (r != null && "false".equals(r.getData())) { r.setData(value); mapper.updateById(r); } return null; }); }
         catch (Exception e) { ExceptionHandler.handle("更新玩家礼包数据", e); }
     }
     private static PlayerRecord record(String player, String kit, String data, int time) {

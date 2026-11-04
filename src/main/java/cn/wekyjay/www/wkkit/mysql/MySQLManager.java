@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,12 +36,21 @@ public final class MySQLManager {
     private volatile SqlSessionFactory sessionFactory;
     private volatile boolean ready;
     private String tablePrefix = "";
+    private boolean sqlite;
 
     private MySQLManager() {}
 
     public static MySQLManager get() { return INSTANCE; }
     public static String getTablePrefix() { return get().tablePrefix; }
     public boolean isReady() { return ready; }
+    public boolean isSQLite() { return sqlite; }
+    public static boolean isDatabaseConfigured() {
+        WkKit plugin = WkKit.getWkKit();
+        if (plugin == null) return false;
+        if (plugin.getConfig().getBoolean("MySQL.Enable", false)) return true;
+        String type = plugin.getConfig().getString("Storage.Type", "SQLITE");
+        return "SQLITE".equalsIgnoreCase(type) || "MYSQL".equalsIgnoreCase(type);
+    }
 
     public static boolean isDuplicateKey(Throwable error) {
         for (Throwable cause = error; cause != null; cause = cause.getCause()) {
@@ -53,21 +63,34 @@ public final class MySQLManager {
         WkKit.getWkKit().getLogger().warning(ChatColor.YELLOW + LangConfigLoader.getString("MYSQL_DATEEXISTS"));
     }
 
-    public synchronized void enableMySQL() {
+    public synchronized void enableMySQL() { enableDatabase(true); }
+
+    public synchronized void enableDatabase() {
+        boolean legacyMySql = WkKit.getWkKit().getConfig().getBoolean("MySQL.Enable", false);
+        String type = WkKit.getWkKit().getConfig().getString("Storage.Type", "SQLITE");
+        enableDatabase(legacyMySql || "MYSQL".equalsIgnoreCase(type));
+    }
+
+    private synchronized void enableDatabase(boolean useMySQL) {
         if (sessionFactory != null) return;
         WkKit plugin = WkKit.getWkKit();
+        sqlite = !useMySQL;
         plugin.getLogger().info(LangConfigLoader.getString("MYSQL_CONNECTING"));
-        String host = plugin.getConfig().getString("MySQL.ip", "localhost");
-        String database = plugin.getConfig().getString("MySQL.databasename", "name");
-        String port = plugin.getConfig().getString("MySQL.port", "3306");
-        String user = plugin.getConfig().getString("MySQL.username", "user");
-        String password = plugin.getConfig().getString("MySQL.password", "");
-        boolean ssl = plugin.getConfig().getBoolean("MySQL.useSSL", false);
-        tablePrefix = plugin.getConfig().getString("MySQL.tablePrefix", "");
-        String query = database.contains("?") ? "&serverTimezone=UTC" : "?serverTimezone=UTC";
-        query += "&useSSL=" + ssl + "&allowPublicKeyRetrieval=true";
-
-        new Druid("jdbc:mysql://" + host + ":" + port + "/" + database + query, user, password);
+        tablePrefix = plugin.getConfig().getString("MySQL.tablePrefix", "wkkit_");
+        if (sqlite) {
+            File databaseFile = new File(plugin.getDataFolder(), "wkkit.db");
+            new Druid("jdbc:sqlite:" + databaseFile.getAbsolutePath(), "", "", "org.sqlite.JDBC", true);
+        } else {
+            String host = plugin.getConfig().getString("MySQL.ip", "localhost");
+            String database = plugin.getConfig().getString("MySQL.databasename", "name");
+            String port = plugin.getConfig().getString("MySQL.port", "3306");
+            String user = plugin.getConfig().getString("MySQL.username", "user");
+            String password = plugin.getConfig().getString("MySQL.password", "");
+            boolean ssl = plugin.getConfig().getBoolean("MySQL.useSSL", false);
+            String query = database.contains("?") ? "&serverTimezone=UTC" : "?serverTimezone=UTC";
+            query += "&useSSL=" + ssl + "&allowPublicKeyRetrieval=true";
+            new Druid("jdbc:mysql://" + host + ":" + port + "/" + database + query, user, password);
+        }
         try {
             // 验证连通性，再把连接池作为 MyBatis 的 DataSource。
             try (Connection ignored = Druid.getConnection()) {}
@@ -83,12 +106,13 @@ public final class MySQLManager {
             configuration.addMapper(KitGroupMapper.class);
             configuration.addMapper(KitMapper.class);
             MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-            interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+            interceptor.addInnerInterceptor(new PaginationInnerInterceptor(sqlite ? DbType.SQLITE : DbType.MYSQL));
             configuration.addInterceptor(interceptor);
             sessionFactory = new MybatisSqlSessionFactoryBuilder().build(configuration);
             createTables();
+            if (sqlite) importLegacyYamlData();
             cn.wekyjay.www.wkkit.config.ConfigManager.getKitconfig().importYamlToDatabase();
-            dropLegacyGroupConfig();
+            if (!sqlite) dropLegacyGroupConfig();
             ready = true;
             WkKit.getWkKit().getLogger().info(LangConfigLoader.getString("MYSQL_CONNECT_SUCCESS"));
         } catch (Exception e) {
@@ -96,7 +120,7 @@ public final class MySQLManager {
             ready = false;
             Druid.shutdown();
             plugin.getLogger().severe(LangConfigLoader.getString("MYSQL_CONECTFAILED") + ": " + e.getMessage());
-            plugin.getConfig().set("MySQL.Enable", false);
+            plugin.getLogger().severe(sqlite ? "SQLite storage could not be initialized." : "MySQL storage could not be initialized.");
             plugin.saveConfig();
         }
     }
@@ -104,6 +128,17 @@ public final class MySQLManager {
     private void createTables() throws Exception {
         try (Connection connection = Druid.getConnection(); Statement statement = connection.createStatement()) {
             String p = tablePrefix;
+            if (sqlite) {
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "player` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `player` TEXT NOT NULL, `kitname` TEXT NOT NULL, `data` TEXT NOT NULL, `time` INTEGER NOT NULL, UNIQUE (`player`,`kitname`))");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "maildata` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `player` TEXT NOT NULL, `kitname` TEXT NOT NULL, `num` INTEGER NOT NULL, UNIQUE (`player`,`kitname`))");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "cdk` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `cdk` TEXT NOT NULL UNIQUE, `kits` TEXT NOT NULL, `date` TEXT NOT NULL, `status` TEXT NOT NULL, `mark` TEXT NOT NULL)");
+                statement.executeUpdate("CREATE INDEX IF NOT EXISTS `idx_" + p + "cdk_mark` ON `" + p + "cdk` (`mark`)");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "kit_group` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT NOT NULL UNIQUE)");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "kit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `kitname` TEXT NOT NULL UNIQUE, `group_id` INTEGER NOT NULL, `config` TEXT NOT NULL)");
+                statement.executeUpdate("CREATE INDEX IF NOT EXISTS `idx_" + p + "kit_group_id` ON `" + p + "kit` (`group_id`)");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "storage_meta` (`key` TEXT PRIMARY KEY, `value` TEXT NOT NULL)");
+                return;
+            }
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "player` (`id` INT UNSIGNED AUTO_INCREMENT, `player` VARCHAR(50) NOT NULL, `kitname` VARCHAR(50) NOT NULL, `data` VARCHAR(50) NOT NULL, `time` SMALLINT NOT NULL, PRIMARY KEY (`id`), UNIQUE KEY `idx_player_kit` (`player`,`kitname`)) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "maildata` (`id` INT UNSIGNED AUTO_INCREMENT, `player` VARCHAR(50) NOT NULL, `kitname` VARCHAR(50) NOT NULL, `num` SMALLINT UNSIGNED NOT NULL, PRIMARY KEY (`id`), UNIQUE KEY `idx_player_kit` (`player`,`kitname`)) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS `" + p + "cdk` (`id` INT UNSIGNED AUTO_INCREMENT, `cdk` VARCHAR(20) NOT NULL, `kits` VARCHAR(100) NOT NULL, `date` VARCHAR(50) NOT NULL, `status` VARCHAR(50) NOT NULL, `mark` VARCHAR(100) NOT NULL, PRIMARY KEY (`id`), UNIQUE KEY `uk_cdk` (`cdk`), INDEX `idx_mark` (`mark`)) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -147,6 +182,75 @@ public final class MySQLManager {
             }
             if (!hasIndex(connection, kitTable, "idx_kit_group_id")) {
                 statement.executeUpdate("ALTER TABLE `" + kitTable + "` ADD INDEX `idx_kit_group_id` (`group_id`)");
+            }
+        }
+    }
+
+    /** Import legacy YAML player, mail and CDK data without overwriting existing database rows. */
+    private void importLegacyYamlData() throws SQLException {
+        String prefix = tablePrefix;
+        try (Connection connection = Druid.getConnection()) {
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement()) {
+                try (java.sql.ResultSet marker = statement.executeQuery("SELECT `value` FROM `" + prefix + "storage_meta` WHERE `key`='legacy_yaml_imported'")) {
+                    if (marker.next()) {
+                        connection.rollback();
+                        return;
+                    }
+                }
+                File playerFile = new File(WkKit.getWkKit().getDataFolder(), "player.yml");
+                org.bukkit.configuration.file.YamlConfiguration players = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(playerFile);
+                try (java.sql.PreparedStatement insert = connection.prepareStatement("INSERT OR IGNORE INTO `" + prefix + "player` (`player`,`kitname`,`data`,`time`) VALUES (?,?,?,?)")) {
+                    for (String player : players.getKeys(false)) {
+                        org.bukkit.configuration.ConfigurationSection kits = players.getConfigurationSection(player);
+                        if (kits == null) continue;
+                        for (String kit : kits.getKeys(false)) {
+                            String path = player + "." + kit;
+                            insert.setString(1, player);
+                            insert.setString(2, kit);
+                            insert.setString(3, players.getString(path + ".data", "true"));
+                            insert.setInt(4, players.getInt(path + ".time", -1));
+                            insert.addBatch();
+                        }
+                    }
+                    insert.executeBatch();
+                }
+                File mailFile = new File(WkKit.getWkKit().getDataFolder(), "maildata.yml");
+                org.bukkit.configuration.file.YamlConfiguration mail = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(mailFile);
+                try (java.sql.PreparedStatement insert = connection.prepareStatement("INSERT OR IGNORE INTO `" + prefix + "maildata` (`player`,`kitname`,`num`) VALUES (?,?,?)")) {
+                    for (String player : mail.getKeys(false)) {
+                        org.bukkit.configuration.ConfigurationSection kits = mail.getConfigurationSection(player);
+                        if (kits == null) continue;
+                        for (String kit : kits.getKeys(false)) {
+                            insert.setString(1, player);
+                            insert.setString(2, kit);
+                            insert.setInt(3, mail.getInt(player + "." + kit));
+                            insert.addBatch();
+                        }
+                    }
+                    insert.executeBatch();
+                }
+                File cdkFile = new File(WkKit.getWkKit().getDataFolder(), "CDK.yml");
+                org.bukkit.configuration.file.YamlConfiguration cdks = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(cdkFile);
+                try (java.sql.PreparedStatement insert = connection.prepareStatement("INSERT OR IGNORE INTO `" + prefix + "cdk` (`cdk`,`kits`,`date`,`status`,`mark`) VALUES (?,?,?,?,?)")) {
+                    for (String code : cdks.getKeys(false)) {
+                        insert.setString(1, code);
+                        insert.setString(2, cdks.getString(code + ".Kits", ""));
+                        insert.setString(3, cdks.getString(code + ".Date", ""));
+                        insert.setString(4, cdks.getString(code + ".Status", "Available"));
+                        insert.setString(5, cdks.getString(code + ".Mark", ""));
+                        insert.addBatch();
+                    }
+                    insert.executeBatch();
+                }
+                statement.executeUpdate("INSERT OR REPLACE INTO `" + prefix + "storage_meta` (`key`,`value`) VALUES ('legacy_yaml_imported','true')");
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                if (e instanceof SQLException) throw (SQLException) e;
+                throw new SQLException("Failed importing legacy YAML data", e);
+            } finally {
+                connection.setAutoCommit(true);
             }
         }
     }

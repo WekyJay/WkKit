@@ -1,11 +1,9 @@
 package cn.wekyjay.www.wkkit.data.playerdata;
 
 import cn.wekyjay.www.wkkit.WkKit;
-import cn.wekyjay.www.wkkit.util.ExceptionHandler;
+import cn.wekyjay.www.wkkit.data.YamlSaveQueue;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -16,12 +14,7 @@ public class PlayerData_Yaml implements PlayerData{
 	public void setKitToFile(String playername, String kitname, String data, int time) {
 			WkKit.playerConfig.set(playername + "." + kitname + ".data", data);
 			WkKit.playerConfig.set(playername + "." + kitname + ".time", time);
-			try {
-				WkKit.playerConfig.save(WkKit.playerConfigFile);
-				WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
-			} catch (IOException e) {
-				ExceptionHandler.handle("未知操作", e);
-			}
+			YamlSaveQueue.schedule(WkKit.playerConfig, WkKit.playerConfigFile);
 	}
 
 	@Override
@@ -54,36 +47,21 @@ public class PlayerData_Yaml implements PlayerData{
 	@Override
 	public void delKitToFile(String playername, String kitname) {
 		WkKit.playerConfig.set(playername + "." + kitname, null);
-		try {
-			WkKit.playerConfig.save(WkKit.playerConfigFile);
-			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerConfig, WkKit.playerConfigFile);
 		
 	}
 
 	@Override
 	public void setKitData(String playername, String kitname, String value) {
 		WkKit.playerConfig.set(playername + "." + kitname + ".data", value);
-		try {
-			WkKit.playerConfig.save(WkKit.playerConfigFile);
-			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerConfig, WkKit.playerConfigFile);
 		
 	}
 
 	@Override
 	public void setKitTime(String playername, String kitname, int value) {
 		WkKit.playerConfig.set(playername + "." + kitname + ".time", value);
-		try {
-			WkKit.playerConfig.save(WkKit.playerConfigFile);
-			WkKit.playerConfig = YamlConfiguration.loadConfiguration(WkKit.playerConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerConfig, WkKit.playerConfigFile);
 	}
 
 	@Override
@@ -99,35 +77,20 @@ public class PlayerData_Yaml implements PlayerData{
 	@Override
 	public void setMailToFile(String playername, String kitname, int num) {
 		WkKit.playerMailConfig.set(playername + "." + kitname, num);
-		try {
-			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
-			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerMailConfig, WkKit.playerMailConfigFile);
 	}
 
 	@Override
 	public void delMailToFile(String playername, String kitname) {
 		WkKit.playerMailConfig.set(playername + "." + kitname, null);
-		try {
-			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
-			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerMailConfig, WkKit.playerMailConfigFile);
 		
 	}
 
 	@Override
 	public void setMailNum(String playername, String kitname, int num) {
 		WkKit.playerMailConfig.set(playername + "." + kitname, num);
-		try {
-			WkKit.playerMailConfig.save(WkKit.playerMailConfigFile);
-			WkKit.playerMailConfig = YamlConfiguration.loadConfiguration(WkKit.playerMailConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.playerMailConfig, WkKit.playerMailConfigFile);
 		
 	}
 

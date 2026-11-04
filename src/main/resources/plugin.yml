@@ -2,6 +2,7 @@ name: WkKit
 main: cn.wekyjay.www.wkkit.WkKit
 version: '${project.version}'
 api-version: '1.13'
+folia-supported: true
 author: WekyJay
 description: A minecraft plugin by WekyJay.
 website: https://forum.wekyjay.cn/

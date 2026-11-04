@@ -1,10 +1,8 @@
 package cn.wekyjay.www.wkkit.data.cdkdata;
 
 import cn.wekyjay.www.wkkit.WkKit;
-import cn.wekyjay.www.wkkit.util.ExceptionHandler;
-import org.bukkit.configuration.file.YamlConfiguration;
+import cn.wekyjay.www.wkkit.data.YamlSaveQueue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,24 +14,14 @@ public class CdkData_Yaml implements CdkData {
 		WkKit.CDKConfig.set(CDK + ".Date", data);
 		WkKit.CDKConfig.set(CDK + ".Status", "Available");
 		WkKit.CDKConfig.set(CDK + ".Mark", mark);
-		try {
-			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
-			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.CDKConfig, WkKit.CDKConfigFile);
 		
 	}
 
 	@Override
 	public void setCDKStatus(String CDK, String playername) {
 		WkKit.CDKConfig.set(CDK + ".Status", playername);
-		try {
-			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
-			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.CDKConfig, WkKit.CDKConfigFile);
 	}
 
 	@Override
@@ -41,12 +29,7 @@ public class CdkData_Yaml implements CdkData {
 		for(String CDK : findCDK(mark)) {
 			WkKit.CDKConfig.set(CDK + ".Mark", newmark);
 		}
-		try {
-			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
-			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.CDKConfig, WkKit.CDKConfigFile);
 	}
 
 	@Override
@@ -54,23 +37,13 @@ public class CdkData_Yaml implements CdkData {
 		for(String CDK : findCDK(mark)) {
 			WkKit.CDKConfig.set(CDK, null);
 		}
-		try {
-			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
-			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.CDKConfig, WkKit.CDKConfigFile);
 	}
 
 	@Override
 	public void delCDK(String cdk) {
 		WkKit.CDKConfig.set(cdk, null);
-		try {
-			WkKit.CDKConfig.save(WkKit.CDKConfigFile);
-			WkKit.CDKConfig = YamlConfiguration.loadConfiguration(WkKit.CDKConfigFile);
-		} catch (IOException e) {
-			ExceptionHandler.handle("未知操作", e);
-		}
+		YamlSaveQueue.schedule(WkKit.CDKConfig, WkKit.CDKConfigFile);
 	}
 
 	@Override

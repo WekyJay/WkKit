@@ -48,8 +48,11 @@ NewComer:
 KitCode:
    # CDK密钥(不要随意改动)
    Key: 'none'
+Storage:
+   # 存储方式：SQLITE（单服默认）、MYSQL（多服共享）或 YAML（兼容旧文件）
+   Type: 'SQLITE'
 MySQL:
-   #是否开启数据库模式
+   # 兼容旧配置：设为 true 时优先使用 MySQL；新配置请使用 Storage.Type
    Enable: false
    # 数据库名字
    databasename: 'name'

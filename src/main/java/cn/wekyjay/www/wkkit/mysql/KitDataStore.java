@@ -9,6 +9,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.session.SqlSession;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class KitDataStore {
     private KitDataStore() {}
@@ -97,8 +99,9 @@ public final class KitDataStore {
         MySQLManager.get().execute(session -> {
             long groupId = ensureGroup(session, name);
             KitMapper mapper = session.getMapper(KitMapper.class);
+            Map<String, KitRecord> existingByName = findKitsByName(session, kits);
             for (KitRecord kit : kits) {
-                if (findKit(session, kit.getKitname()) != null) continue;
+                if (existingByName.containsKey(kit.getKitname())) continue;
                 kit.setGroupId(groupId);
                 mapper.insert(kit);
             }
@@ -112,12 +115,13 @@ public final class KitDataStore {
             KitMapper mapper = session.getMapper(KitMapper.class);
             List<String> names = new java.util.ArrayList<>();
             for (KitRecord kit : kits) names.add(kit.getKitname());
+            Map<String, KitRecord> existingByName = findKitsByName(session, kits);
             QueryWrapper<KitRecord> stale = new QueryWrapper<KitRecord>().eq("group_id", groupId);
             if (names.isEmpty()) mapper.delete(stale);
             else mapper.delete(stale.notIn("kitname", names));
 
             for (KitRecord kit : kits) {
-                KitRecord existing = findKit(session, kit.getKitname());
+                KitRecord existing = existingByName.get(kit.getKitname());
                 if (existing != null && !existing.getGroupId().equals(groupId)) continue;
                 kit.setGroupId(groupId);
                 if (existing == null) mapper.insert(kit);
@@ -136,6 +140,24 @@ public final class KitDataStore {
 
     private static KitRecord findKit(SqlSession session, String name) {
         return session.getMapper(KitMapper.class).selectOne(new QueryWrapper<KitRecord>().eq("kitname", name));
+    }
+
+    /** Read existing records in bounded IN queries to avoid one database round trip per kit. */
+    private static Map<String, KitRecord> findKitsByName(SqlSession session, List<KitRecord> kits) {
+        Map<String, KitRecord> result = new HashMap<>();
+        if (kits.isEmpty()) return result;
+
+        List<String> names = new java.util.ArrayList<>();
+        for (KitRecord kit : kits) names.add(kit.getKitname());
+        KitMapper mapper = session.getMapper(KitMapper.class);
+        final int batchSize = 500;
+        for (int start = 0; start < names.size(); start += batchSize) {
+            List<String> batch = names.subList(start, Math.min(start + batchSize, names.size()));
+            for (KitRecord record : mapper.selectList(new QueryWrapper<KitRecord>().in("kitname", batch))) {
+                result.put(record.getKitname(), record);
+            }
+        }
+        return result;
     }
 
     private static long ensureGroup(SqlSession session, String name) {

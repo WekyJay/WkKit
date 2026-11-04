@@ -9,6 +9,7 @@ import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.data.cdkdata.CdkData;
 import cn.wekyjay.www.wkkit.data.cdkdata.CdkData_MySQL;
 import cn.wekyjay.www.wkkit.data.cdkdata.CdkData_Yaml;
+import cn.wekyjay.www.wkkit.data.YamlSaveQueue;
 import cn.wekyjay.www.wkkit.data.playerdata.PlayerData;
 import cn.wekyjay.www.wkkit.data.playerdata.PlayerData_MySQL;
 import cn.wekyjay.www.wkkit.data.playerdata.PlayerData_Yaml;
@@ -35,7 +36,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 
 public class WkKit extends JavaPlugin {
 
@@ -57,13 +57,13 @@ public class WkKit extends JavaPlugin {
 
     // 初始化数据
     public static PlayerData getPlayerData() {
-        if(WkKit.wkkit.getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
+        if(MySQLManager.get().isReady()) {
             return playerdata == null ? new PlayerData_MySQL() : playerdata;
         }
         return playerdata == null ? new PlayerData_Yaml() : playerdata;
     }
     public static CdkData getCdkData() {
-        if(WkKit.wkkit.getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
+        if(MySQLManager.get().isReady()) {
             return cdkdata == null ? new CdkData_MySQL() : cdkdata;
         }
         return cdkdata == null ? new CdkData_Yaml() : cdkdata;
@@ -188,9 +188,9 @@ public class WkKit extends JavaPlugin {
         }
 
         // 启动数据库
-        if(Objects.requireNonNull(WkKit.wkkit.getConfig().getString("MySQL.Enable")).equalsIgnoreCase("true")) {
+        if(MySQLManager.isDatabaseConfigured()) {
             HandySchedulerUtil.runTaskAsynchronously(()-> {
-                    MySQLManager.get().enableMySQL();
+                    MySQLManager.get().enableDatabase();
                     if (MySQLManager.get().isReady()) {
                         HandySchedulerUtil.runTask(() -> {
                             ConfigManager.reloadKit();
@@ -245,8 +245,9 @@ public class WkKit extends JavaPlugin {
     /*插件关闭标识*/
     @Override
     public void onDisable() {
+        YamlSaveQueue.flush();
         // 关闭数据库
-        if(WkKit.wkkit.getConfig().getString("MySQL.Enable").equalsIgnoreCase("true")) {
+        if(MySQLManager.get().isReady()) {
             MySQLManager.get().shutdown();
             WkKit.getWkKit().getLogger().info(LangConfigLoader.getString("MYSQL_SHUTDOWN"));
         }

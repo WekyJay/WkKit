@@ -4,6 +4,7 @@ import cn.wekyjay.www.wkkit.WkKit;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.listeners.ChackPluginListener;
 import cn.wekyjay.www.wkkit.util.ExceptionHandler;
+import cn.handyplus.lib.adapter.HandySchedulerUtil;
 import com.alibaba.druid.support.json.JSONParser;
 import org.bukkit.Bukkit;
 
@@ -53,7 +54,7 @@ public class ChackPluginVersion {
     }
 
     private void registerJoinListener() {
-        Bukkit.getScheduler().runTask(wkkit, () ->
+        HandySchedulerUtil.runTask(() ->
                 Bukkit.getPluginManager().registerEvents(new ChackPluginListener(), wkkit));
     }
 
